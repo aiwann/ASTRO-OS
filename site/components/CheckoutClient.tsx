@@ -4,8 +4,12 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Product, formatEUR } from "@/lib/products";
+import { TranslationKey } from "@/lib/i18n";
+import { useLanguage } from "@/hooks/useLanguage";
 import BumpPopup from "@/components/BumpPopup";
 import LocationAutocomplete from "@/components/LocationAutocomplete";
+
+type T = (key: TranslationKey, vars?: Record<string, string | number>) => string;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BUMP_PRICE = 4.99;
@@ -66,6 +70,7 @@ const emptyPerson: PersonFields = {
 
 export default function CheckoutClient({ product }: { product: Product }) {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [popupOpen, setPopupOpen] = useState(false);
   const [popupSeen, setPopupSeen] = useState(false);
@@ -84,18 +89,18 @@ export default function CheckoutClient({ product }: { product: Product }) {
 
   useEffect(() => {
     if (popupSeen) return;
-    const t = setTimeout(() => setPopupOpen(true), 500);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setPopupOpen(true), 500);
+    return () => clearTimeout(timer);
   }, [popupSeen]);
 
   const emailValid = EMAIL_RE.test(email);
   const showEmailError = emailTouched && email.length > 0 && !emailValid;
 
   const total = useMemo(() => {
-    let t = product.newPrice;
-    if (bumpQuestion) t += BUMP_PRICE;
-    if (bumpPartnerIdeal) t += BUMP_PRICE;
-    return t;
+    let sum = product.newPrice;
+    if (bumpQuestion) sum += BUMP_PRICE;
+    if (bumpPartnerIdeal) sum += BUMP_PRICE;
+    return sum;
   }, [product.newPrice, bumpQuestion, bumpPartnerIdeal]);
 
   const personValid =
@@ -143,7 +148,7 @@ export default function CheckoutClient({ product }: { product: Product }) {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
         <header className="text-center mb-10">
           <p className="text-xs tracking-[0.3em] uppercase text-gold/70 mb-3">
-            Checkout
+            {t("checkout.kicker")}
           </p>
           <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-light">
             <span className="gold-gradient-text">{product.title}</span>
@@ -161,30 +166,33 @@ export default function CheckoutClient({ product }: { product: Product }) {
             {product.twoPersons ? (
               <>
                 <PersonSection
-                  title="ТВОИТЕ ДАННИ"
+                  title={t("checkout.yourData")}
                   data={person}
                   onChange={setPerson}
                   idPrefix="me"
+                  t={t}
                 />
                 <PersonSection
-                  title="ДАННИ НА ПАРТНЬОРА"
+                  title={t("checkout.partnerData")}
                   data={partner}
                   onChange={setPartner}
                   idPrefix="partner"
+                  t={t}
                 />
               </>
             ) : (
               <PersonSection
-                title="ТВОИТЕ ДАННИ"
+                title={t("checkout.yourData")}
                 data={person}
                 onChange={setPerson}
                 idPrefix="me"
+                t={t}
               />
             )}
 
             <FormCard>
               <FieldLabel htmlFor="email" required>
-                Email адрес
+                {t("checkout.email")}
               </FieldLabel>
               <input
                 id="email"
@@ -192,7 +200,7 @@ export default function CheckoutClient({ product }: { product: Product }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onBlur={() => setEmailTouched(true)}
-                placeholder="ime@example.com"
+                placeholder={t("checkout.email.placeholder")}
                 className={`field ${
                   showEmailError ? "border-red-500/60" : ""
                 }`}
@@ -201,36 +209,42 @@ export default function CheckoutClient({ product }: { product: Product }) {
               />
               {showEmailError && (
                 <p className="mt-2 text-sm text-red-400">
-                  ❌ Моля въведи валиден имейл адрес
+                  {t("checkout.email.error")}
                 </p>
               )}
             </FormCard>
 
             <section className="space-y-4">
               <h3 className="text-xs tracking-[0.3em] uppercase text-gold/70">
-                Препоръчани допълнения
+                {t("checkout.addons")}
               </h3>
 
               <BumpItem
                 checked={bumpQuestion}
                 onChange={setBumpQuestion}
-                title="Персонален Въпрос"
-                description="Задай конкретен въпрос — AI отговаря директно в доклада."
+                title={t("checkout.bump.question.title")}
+                description={t("checkout.bump.question.desc")}
                 oldPrice={BUMP_OLD_PRICE}
                 newPrice={BUMP_PRICE}
               >
                 {bumpQuestion && (
                   <div className="mt-4 animate-fade-in">
-                    <FieldLabel htmlFor="question">Твоят въпрос</FieldLabel>
+                    <FieldLabel htmlFor="question">
+                      {t("checkout.question.label")}
+                    </FieldLabel>
                     <div className="mb-3 rounded-md border border-gold/20 bg-card/40 p-3 space-y-1 text-xs text-parchment/75">
-                      <p>⚠️ Въпросът трябва да е свързан с теб лично.</p>
+                      <p>{t("checkout.question.helperWarn")}</p>
                       <p>
-                        <span className="text-emerald-400">✅ Валиден пример:</span>{" "}
-                        &bdquo;Зададено ли ми е да бъда богат?&ldquo;
+                        <span className="text-emerald-400">
+                          {t("checkout.question.helperValid")}
+                        </span>{" "}
+                        {t("checkout.question.helperValidEx")}
                       </p>
                       <p>
-                        <span className="text-red-400">❌ Невалиден:</span>{" "}
-                        &bdquo;Кога ще стана богат?&ldquo; (предсказания не са възможни)
+                        <span className="text-red-400">
+                          {t("checkout.question.helperInvalid")}
+                        </span>{" "}
+                        {t("checkout.question.helperInvalidEx")}
                       </p>
                     </div>
                     <textarea
@@ -238,14 +252,16 @@ export default function CheckoutClient({ product }: { product: Product }) {
                       value={questionText}
                       onChange={(e) => setQuestionText(e.target.value)}
                       rows={3}
-                      placeholder="Напр. &bdquo;Зададено ли ми е да бъда богат?&ldquo;"
+                      placeholder={t("checkout.question.placeholder")}
                       className="field resize-none"
                     />
                     {questionText.length > 0 &&
                       questionText.trim().length < MIN_QUESTION_LENGTH && (
                         <p className="mt-2 text-sm text-amber-400">
-                          ⚠️ Минимум {MIN_QUESTION_LENGTH} символа ({questionText.trim().length}/
-                          {MIN_QUESTION_LENGTH})
+                          {t("checkout.question.minChars", {
+                            min: MIN_QUESTION_LENGTH,
+                            current: questionText.trim().length,
+                          })}
                         </p>
                       )}
                   </div>
@@ -255,8 +271,8 @@ export default function CheckoutClient({ product }: { product: Product }) {
               <BumpItem
                 checked={bumpPartnerIdeal}
                 onChange={setBumpPartnerIdeal}
-                title="Идеален Партньор"
-                description="Кратък профил на идеалния за теб партньор."
+                title={t("checkout.bump.partner.title")}
+                description={t("checkout.bump.partner.desc")}
                 oldPrice={BUMP_OLD_PRICE}
                 newPrice={BUMP_PRICE}
               />
@@ -271,21 +287,21 @@ export default function CheckoutClient({ product }: { product: Product }) {
                   className="mt-1 w-5 h-5 accent-gold shrink-0"
                 />
                 <span className="text-sm text-parchment/80 leading-relaxed">
-                  Приемам всички{" "}
+                  {t("checkout.terms.accept")}{" "}
                   <Link
                     href="/terms"
                     target="_blank"
                     className="text-gold-light hover:text-gold underline underline-offset-2"
                   >
-                    условия
+                    {t("checkout.terms.linkTerms")}
                   </Link>{" "}
-                  и{" "}
+                  {t("checkout.terms.and")}{" "}
                   <Link
                     href="/privacy"
                     target="_blank"
                     className="text-gold-light hover:text-gold underline underline-offset-2"
                   >
-                    политика за поверителност
+                    {t("checkout.terms.linkPrivacy")}
                   </Link>
                   .
                 </span>
@@ -303,11 +319,11 @@ export default function CheckoutClient({ product }: { product: Product }) {
             >
               {submitting ? (
                 <>
-                  <Spinner /> Обработваме...
+                  <Spinner /> {t("checkout.submitting")}
                 </>
               ) : (
                 <>
-                  Плати сигурно <span>→</span>
+                  {t("checkout.submit")} <span>→</span>
                 </>
               )}
             </button>
@@ -317,7 +333,7 @@ export default function CheckoutClient({ product }: { product: Product }) {
             <div className="lg:sticky lg:top-24 space-y-4">
               <div className="rounded-2xl border border-gold/30 bg-card/80 backdrop-blur-sm p-6">
                 <p className="text-xs tracking-[0.3em] uppercase text-muted mb-3">
-                  Поръчка
+                  {t("checkout.order")}
                 </p>
                 <h2 className="font-serif text-2xl text-parchment">
                   {product.title}
@@ -344,7 +360,7 @@ export default function CheckoutClient({ product }: { product: Product }) {
                   <div className="mt-5 pt-5 border-t border-gold/15 space-y-2 text-sm">
                     {bumpQuestion && (
                       <div className="flex justify-between text-parchment/80">
-                        <span>+ Персонален Въпрос</span>
+                        <span>+ {t("checkout.bump.question.title")}</span>
                         <span className="text-emerald-400">
                           {formatEUR(BUMP_PRICE)}
                         </span>
@@ -352,7 +368,7 @@ export default function CheckoutClient({ product }: { product: Product }) {
                     )}
                     {bumpPartnerIdeal && (
                       <div className="flex justify-between text-parchment/80">
-                        <span>+ Идеален Партньор</span>
+                        <span>+ {t("checkout.bump.partner.title")}</span>
                         <span className="text-emerald-400">
                           {formatEUR(BUMP_PRICE)}
                         </span>
@@ -363,7 +379,7 @@ export default function CheckoutClient({ product }: { product: Product }) {
 
                 <div className="mt-5 pt-5 border-t border-gold/30 flex justify-between items-baseline">
                   <span className="font-serif text-xl text-parchment">
-                    ОБЩО
+                    {t("checkout.total")}
                   </span>
                   <span className="font-serif text-3xl font-semibold gold-gradient-text">
                     {formatEUR(total)}
@@ -372,9 +388,9 @@ export default function CheckoutClient({ product }: { product: Product }) {
               </div>
 
               <ul className="rounded-2xl border border-gold/15 bg-card/50 p-5 space-y-2 text-sm text-parchment/80">
-                <li>🔒 Сигурно плащане</li>
-                <li>📧 PDF на имейла</li>
-                <li>⚡ Готово в минути</li>
+                <li>{t("checkout.trust.secure")}</li>
+                <li>{t("checkout.trust.email")}</li>
+                <li>{t("checkout.trust.fast")}</li>
               </ul>
             </div>
           </aside>
@@ -438,11 +454,13 @@ function PersonSection({
   data,
   onChange,
   idPrefix,
+  t,
 }: {
   title: string;
   data: PersonFields;
   onChange: (v: PersonFields) => void;
   idPrefix: string;
+  t: T;
 }) {
   const [dateTouched, setDateTouched] = useState(false);
   const [timeTouched, setTimeTouched] = useState(false);
@@ -466,14 +484,14 @@ function PersonSection({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
           <FieldLabel htmlFor={`${idPrefix}-name`} required>
-            Пълно Име
+            {t("checkout.fullName")}
           </FieldLabel>
           <input
             id={`${idPrefix}-name`}
             type="text"
             value={data.name}
             onChange={(e) => update("name", e.target.value)}
-            placeholder="Иван Петров"
+            placeholder={t("checkout.fullName.placeholder")}
             className="field"
             required
           />
@@ -481,7 +499,7 @@ function PersonSection({
 
         <div className="sm:col-span-2">
           <span className="block text-sm font-medium text-parchment mb-2">
-            Пол
+            {t("checkout.gender")}
           </span>
           <div className="flex gap-6">
             <label className="flex items-center gap-2 cursor-pointer">
@@ -493,7 +511,7 @@ function PersonSection({
                 onChange={() => update("gender", "male")}
                 className="accent-gold"
               />
-              <span className="text-parchment/90">Мъж</span>
+              <span className="text-parchment/90">{t("checkout.gender.male")}</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -504,14 +522,14 @@ function PersonSection({
                 onChange={() => update("gender", "female")}
                 className="accent-gold"
               />
-              <span className="text-parchment/90">Жена</span>
+              <span className="text-parchment/90">{t("checkout.gender.female")}</span>
             </label>
           </div>
         </div>
 
         <div>
           <FieldLabel htmlFor={`${idPrefix}-bdate`} required>
-            Дата на раждане
+            {t("checkout.birthDate")}
           </FieldLabel>
           <input
             id={`${idPrefix}-bdate`}
@@ -522,20 +540,22 @@ function PersonSection({
               update("birthDate", formatBirthDate(e.target.value))
             }
             onBlur={() => setDateTouched(true)}
-            placeholder="DD/MM/YYYY"
+            placeholder={t("checkout.birthDate.placeholder")}
             maxLength={10}
             className={`field ${dateError ? "border-red-500/60" : ""}`}
             required
           />
           {dateError && (
             <p className="mt-2 text-sm text-red-400">
-              ❌ Невалидна дата — провери ден, месец и година
+              {t("checkout.birthDate.error")}
             </p>
           )}
         </div>
 
         <div>
-          <FieldLabel htmlFor={`${idPrefix}-btime`}>Час на раждане</FieldLabel>
+          <FieldLabel htmlFor={`${idPrefix}-btime`}>
+            {t("checkout.birthTime")}
+          </FieldLabel>
           <input
             id={`${idPrefix}-btime`}
             type="text"
@@ -545,25 +565,26 @@ function PersonSection({
               update("birthTime", formatBirthTime(e.target.value))
             }
             onBlur={() => setTimeTouched(true)}
-            placeholder="HH:MM"
+            placeholder={t("checkout.birthTime.placeholder")}
             maxLength={5}
             className={`field ${timeError ? "border-red-500/60" : ""}`}
           />
           {timeError && (
             <p className="mt-2 text-sm text-red-400">
-              ❌ Невалиден час — 00:00 до 23:59
+              {t("checkout.birthTime.error")}
             </p>
           )}
         </div>
 
         <div className="sm:col-span-2">
           <FieldLabel htmlFor={`${idPrefix}-place`} required>
-            Място на раждане
+            {t("checkout.birthPlace")}
           </FieldLabel>
           <LocationAutocomplete
             id={`${idPrefix}-place`}
             value={data.birthPlace}
             timezone={data.birthTimezone}
+            timezoneLabel={t("checkout.timezone.label")}
             onChange={(value, location) =>
               onChange({
                 ...data,
@@ -573,7 +594,7 @@ function PersonSection({
                 birthTimezone: location?.timezone ?? null,
               })
             }
-            placeholder="София, България"
+            placeholder={t("checkout.birthPlace.placeholder")}
             required
           />
         </div>

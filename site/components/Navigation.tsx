@@ -2,83 +2,42 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/hooks/useLanguage";
+import { LANGUAGES, TranslationKey } from "@/lib/i18n";
 
-type FreeTool = { label: string; href: string };
-type PaidProduct = {
-  label: string;
-  href: string;
-  oldPrice: string;
-  newPrice: string;
-};
+type NavItem = { key: TranslationKey; href: string };
 
-const freeTools: FreeTool[] = [
-  { label: "Личен Код", href: "/free-tools/personal-number" },
-  { label: "Любовен Процент", href: "/free-tools/love-percentage" },
-  { label: "Архетип Профил", href: "/free-tools/archetype" },
-  { label: "Енергийно Отражение", href: "/free-tools/energy" },
-  { label: "Социален Образ", href: "/free-tools/social-image" },
+const freeTools: NavItem[] = [
+  { key: "tool.personal-number", href: "/free-tools/personal-number" },
+  { key: "tool.love-percentage", href: "/free-tools/love-percentage" },
+  { key: "tool.archetype", href: "/free-tools/archetype" },
+  { key: "tool.energy", href: "/free-tools/energy" },
+  { key: "tool.social-image", href: "/free-tools/social-image" },
 ];
 
-const paidProducts: PaidProduct[] = [
-  {
-    label: "Личен AI Анализ",
-    href: "/products/personal-profile",
-    oldPrice: "€49.99",
-    newPrice: "€19.99",
-  },
-  {
-    label: "Любовна Съвместимост",
-    href: "/products/synastry",
-    oldPrice: "€37.49",
-    newPrice: "€14.99",
-  },
-  {
-    label: "Годишен Анализ",
-    href: "/products/yearly-analysis",
-    oldPrice: "€37.49",
-    newPrice: "€14.99",
-  },
-  {
-    label: "Архетип Профил",
-    href: "/products/archetype-profile",
-    oldPrice: "€37.49",
-    newPrice: "€14.99",
-  },
-  {
-    label: "Карта на Живота",
-    href: "/products/life-map",
-    oldPrice: "€37.49",
-    newPrice: "€14.99",
-  },
-  {
-    label: "Скрит Потенциал",
-    href: "/products/hidden-potential",
-    oldPrice: "€37.49",
-    newPrice: "€14.99",
-  },
-  {
-    label: "Енергиен Профил",
-    href: "/products/energy-profile",
-    oldPrice: "€37.49",
-    newPrice: "€14.99",
-  },
-  {
-    label: "Пълен Животен Код",
-    href: "/products/full-life-code",
-    oldPrice: "€199.99",
-    newPrice: "€79.99",
-  },
+const paidProducts: NavItem[] = [
+  { key: "product.personal-profile", href: "/products/personal-profile" },
+  { key: "product.synastry", href: "/products/synastry" },
+  { key: "product.yearly-analysis", href: "/products/yearly-analysis" },
+  { key: "product.archetype-profile", href: "/products/archetype-profile" },
+  { key: "product.life-map", href: "/products/life-map" },
+  { key: "product.hidden-potential", href: "/products/hidden-potential" },
+  { key: "product.energy-profile", href: "/products/energy-profile" },
+  { key: "product.full-life-code", href: "/products/full-life-code" },
 ];
 
 type OpenMenu = "free" | "paid" | null;
 
 export default function Navigation() {
+  const { t, language, switchLanguage } = useLanguage();
   const [open, setOpen] = useState<OpenMenu>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [mobileOpen]);
 
   const closeMobile = () => setMobileOpen(false);
@@ -98,19 +57,19 @@ export default function Navigation() {
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-2">
             <DropdownTrigger
-              label="Бързи Анализи"
+              label={t("nav.quickAnalyses")}
               isOpen={open === "free"}
               onEnter={() => setOpen("free")}
               onLeave={() => setOpen(null)}
             >
               <ul className="py-2">
-                {freeTools.map((t) => (
-                  <li key={t.href}>
+                {freeTools.map((item) => (
+                  <li key={item.href}>
                     <Link
-                      href={t.href}
+                      href={item.href}
                       className="block px-5 py-2.5 text-sm text-parchment/90 hover:bg-gold/10 hover:text-gold-light transition-colors"
                     >
-                      {t.label}
+                      {t(item.key)}
                     </Link>
                   </li>
                 ))}
@@ -118,49 +77,69 @@ export default function Navigation() {
             </DropdownTrigger>
 
             <DropdownTrigger
-              label="Задълбочени Анализи"
-              wide
+              label={t("nav.deepAnalyses")}
               isOpen={open === "paid"}
               onEnter={() => setOpen("paid")}
               onLeave={() => setOpen(null)}
             >
               <ul className="py-2">
-                {paidProducts.map((p) => (
-                  <li key={p.href}>
+                {paidProducts.map((item) => (
+                  <li key={item.href}>
                     <Link
-                      href={p.href}
-                      className="flex items-center justify-between gap-4 px-5 py-2.5 text-sm hover:bg-gold/10 transition-colors group"
+                      href={item.href}
+                      className="flex items-center justify-between gap-4 px-5 py-2.5 text-sm text-parchment/90 hover:bg-gold/10 hover:text-gold-light transition-colors group"
                     >
-                      <span className="text-parchment/90 group-hover:text-gold-light">
-                        {p.label}
-                      </span>
-                      <span className="flex items-center gap-2 whitespace-nowrap">
-                        <span className="text-red-400/80 line-through text-xs">
-                          {p.oldPrice}
-                        </span>
-                        <span className="text-emerald-400 font-semibold">
-                          {p.newPrice}
-                        </span>
+                      <span>{t(item.key)}</span>
+                      <span className="text-gold/50 group-hover:text-gold group-hover:translate-x-0.5 transition-all">
+                        →
                       </span>
                     </Link>
                   </li>
                 ))}
+                <li>
+                  <Link
+                    href="/about"
+                    className="block px-5 py-2.5 text-sm text-gold/80 hover:bg-gold/10 hover:text-gold-light transition-colors border-t border-gold/15 mt-1 pt-3"
+                  >
+                    {t("nav.about")} →
+                  </Link>
+                </li>
               </ul>
             </DropdownTrigger>
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Language switcher */}
+            <div className="hidden sm:flex items-center gap-1 border border-gold/25 rounded-md p-0.5">
+              {LANGUAGES.map((lng) => (
+                <button
+                  key={lng.code}
+                  type="button"
+                  onClick={() => switchLanguage(lng.code)}
+                  aria-label={`Switch to ${lng.label}`}
+                  className={`px-2 py-1 text-xs rounded transition-colors ${
+                    language === lng.code
+                      ? "bg-gold text-dark font-semibold"
+                      : "text-parchment/70 hover:text-gold-light"
+                  }`}
+                >
+                  <span className="mr-1">{lng.flag}</span>
+                  {lng.label}
+                </button>
+              ))}
+            </div>
+
             <Link
               href="/products/personal-profile"
               className="hidden sm:inline-flex items-center gap-1 px-5 py-2.5 text-sm font-medium border border-gold text-gold rounded-md hover:bg-gold hover:text-dark transition-colors"
             >
-              Започни сега →
+              {t("nav.startNow")}
             </Link>
 
             {/* Hamburger — mobile only */}
             <button
               type="button"
-              aria-label={mobileOpen ? "Затвори меню" : "Отвори меню"}
+              aria-label={mobileOpen ? t("nav.closeMenu") : t("nav.openMenu")}
               onClick={() => setMobileOpen((v) => !v)}
               className="md:hidden flex flex-col justify-center items-center w-10 h-10 gap-[6px] rounded-md hover:bg-gold/10 transition-colors"
             >
@@ -197,7 +176,7 @@ export default function Navigation() {
             </Link>
             <button
               type="button"
-              aria-label="Затвори меню"
+              aria-label={t("nav.closeMenu")}
               onClick={closeMobile}
               className="flex items-center justify-center w-10 h-10 rounded-md hover:bg-gold/10 transition-colors text-gold text-2xl leading-none"
             >
@@ -206,20 +185,39 @@ export default function Navigation() {
           </div>
 
           <div className="px-6 py-8 space-y-10">
+            {/* Language switcher (mobile) */}
+            <div className="flex items-center gap-2 border border-gold/25 rounded-md p-1 w-fit mx-auto">
+              {LANGUAGES.map((lng) => (
+                <button
+                  key={lng.code}
+                  type="button"
+                  onClick={() => switchLanguage(lng.code)}
+                  className={`px-3 py-1.5 text-sm rounded transition-colors ${
+                    language === lng.code
+                      ? "bg-gold text-dark font-semibold"
+                      : "text-parchment/80 hover:text-gold-light"
+                  }`}
+                >
+                  <span className="mr-1">{lng.flag}</span>
+                  {lng.label}
+                </button>
+              ))}
+            </div>
+
             {/* Free tools section */}
             <section>
               <p className="text-xs tracking-[0.3em] uppercase text-gold/60 mb-4">
-                Бързи Анализи
+                {t("nav.quickAnalyses")}
               </p>
               <ul className="space-y-1">
-                {freeTools.map((t) => (
-                  <li key={t.href}>
+                {freeTools.map((item) => (
+                  <li key={item.href}>
                     <Link
-                      href={t.href}
+                      href={item.href}
                       onClick={closeMobile}
                       className="block py-3 text-lg text-parchment/90 hover:text-gold-light border-b border-gold/10 transition-colors"
                     >
-                      {t.label}
+                      {t(item.key)}
                     </Link>
                   </li>
                 ))}
@@ -229,30 +227,33 @@ export default function Navigation() {
             {/* Paid products section */}
             <section>
               <p className="text-xs tracking-[0.3em] uppercase text-gold/60 mb-4">
-                Задълбочени Анализи
+                {t("nav.deepAnalyses")}
               </p>
               <ul className="space-y-1">
-                {paidProducts.map((p) => (
-                  <li key={p.href}>
+                {paidProducts.map((item) => (
+                  <li key={item.href}>
                     <Link
-                      href={p.href}
+                      href={item.href}
                       onClick={closeMobile}
-                      className="flex items-center justify-between py-3 border-b border-gold/10 hover:text-gold-light transition-colors group"
+                      className="flex items-center justify-between py-3 border-b border-gold/10 text-base text-parchment/90 hover:text-gold-light transition-colors group"
                     >
-                      <span className="text-base text-parchment/90 group-hover:text-gold-light">
-                        {p.label}
-                      </span>
-                      <span className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs text-red-400/70 line-through">
-                          {p.oldPrice}
-                        </span>
-                        <span className="text-sm text-emerald-400 font-semibold">
-                          {p.newPrice}
-                        </span>
+                      <span>{t(item.key)}</span>
+                      <span className="text-gold/50 group-hover:text-gold">
+                        →
                       </span>
                     </Link>
                   </li>
                 ))}
+                <li>
+                  <Link
+                    href="/about"
+                    onClick={closeMobile}
+                    className="flex items-center justify-between py-3 text-base text-gold/80 hover:text-gold-light transition-colors group"
+                  >
+                    <span>{t("nav.about")}</span>
+                    <span className="text-gold/50 group-hover:text-gold">→</span>
+                  </Link>
+                </li>
               </ul>
             </section>
 
@@ -262,7 +263,7 @@ export default function Navigation() {
               onClick={closeMobile}
               className="block w-full text-center py-4 bg-gold text-dark font-semibold rounded-md hover:bg-gold-light transition-colors text-lg"
             >
-              Започни сега →
+              {t("nav.startNow")}
             </Link>
           </div>
         </div>

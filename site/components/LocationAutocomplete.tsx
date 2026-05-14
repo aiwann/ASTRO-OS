@@ -15,6 +15,7 @@ type Props = {
   id: string;
   value: string;
   timezone?: string | null;
+  timezoneLabel?: string;
   onChange: (value: string, location?: LocationResult) => void;
   placeholder?: string;
   required?: boolean;
@@ -26,6 +27,7 @@ export default function LocationAutocomplete({
   id,
   value,
   timezone,
+  timezoneLabel = "🕐 Часова зона:",
   onChange,
   placeholder = "София, България",
   required,
@@ -145,7 +147,8 @@ export default function LocationAutocomplete({
 
       {timezone && selected && (
         <p className="mt-2 text-xs text-gold/70">
-          🕐 Часова зона: <span className="text-parchment/85">{timezone}</span>
+          {timezoneLabel}{" "}
+          <span className="text-parchment/85">{timezone}</span>
         </p>
       )}
     </div>

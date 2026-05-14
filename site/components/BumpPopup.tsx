@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useLanguage } from "@/hooks/useLanguage";
 
 type Props = {
   open: boolean;
@@ -9,6 +10,8 @@ type Props = {
 };
 
 export default function BumpPopup({ open, onAccept, onDecline }: Props) {
+  const { t } = useLanguage();
+
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -30,15 +33,15 @@ export default function BumpPopup({ open, onAccept, onDecline }: Props) {
 
       <div className="relative z-10 w-full max-w-md rounded-2xl border border-gold/40 bg-card p-7 sm:p-8 shadow-[0_0_60px_rgba(212,175,55,0.25)]">
         <h2 className="font-serif text-2xl sm:text-3xl text-center">
-          <span className="gold-gradient-text">✦ Преди да продължиш...</span>
+          <span className="gold-gradient-text">{t("bump.title")}</span>
         </h2>
 
         <p className="mt-5 text-base sm:text-lg text-parchment/90 leading-relaxed text-center">
-          Искаш ли да добавиш{" "}
+          {t("bump.body.prefix")}{" "}
           <span className="text-gold-light font-semibold">
-            Персонален Въпрос
+            {t("bump.body.product")}
           </span>{" "}
-          към анализа? AI ще отговори директно на твоя въпрос в доклада.
+          {t("bump.body.suffix")}
         </p>
 
         <div className="mt-7 flex items-baseline justify-center gap-3">
@@ -54,14 +57,14 @@ export default function BumpPopup({ open, onAccept, onDecline }: Props) {
             onClick={onAccept}
             className="w-full px-5 py-3.5 bg-gold text-dark font-semibold rounded-md hover:bg-gold-light transition-all hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]"
           >
-            Да, добави за €4.99
+            {t("bump.accept")}
           </button>
           <button
             type="button"
             onClick={onDecline}
             className="w-full px-5 py-3 border border-gold/40 text-parchment/80 rounded-md hover:bg-gold/10 transition-colors"
           >
-            Не, продължи без
+            {t("bump.decline")}
           </button>
         </div>
       </div>
