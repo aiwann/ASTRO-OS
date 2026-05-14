@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  background-color: #0a0a0f;
+  color: #e8dcc8;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-inter), Inter, system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: #d4af37;
+  color: #0a0a0f;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .gold-gradient-text {
+    background: linear-gradient(135deg, #e8cc6a 0%, #d4af37 50%, #b8902a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .gold-border {
+    border: 1px solid rgba(212, 175, 55, 0.4);
+  }
+}

@@ -1,0 +1,12 @@
+node_modules/
+dist-electron/
+.DS_Store
+*.log
+.env
+.next/
+out/
+site/.next/
+site/out/
+frontend/node_modules/
+backend/node_modules/
+.vite/
