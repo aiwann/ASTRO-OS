@@ -1,13 +1,49 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Product, formatEUR } from "@/lib/products";
 import BumpPopup from "@/components/BumpPopup";
+import LocationAutocomplete from "@/components/LocationAutocomplete";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BUMP_PRICE = 4.99;
 const BUMP_OLD_PRICE = 12.49;
+const MIN_QUESTION_LENGTH = 10;
+
+function formatBirthDate(input: string): string {
+  const digits = input.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+function isValidBirthDate(date: string): boolean {
+  const m = date.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return false;
+  const d = +m[1];
+  const mo = +m[2];
+  const y = +m[3];
+  if (mo < 1 || mo > 12 || d < 1 || d > 31 || y < 1900 || y > 2100) return false;
+  const dt = new Date(y, mo - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d;
+}
+
+function formatBirthTime(input: string): string {
+  const digits = input.replace(/\D/g, "").slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
+
+function isValidBirthTime(time: string): boolean {
+  if (!time) return true;
+  const m = time.match(/^(\d{2}):(\d{2})$/);
+  if (!m) return false;
+  const h = +m[1];
+  const mi = +m[2];
+  return h >= 0 && h <= 23 && mi >= 0 && mi <= 59;
+}
 
 type PersonFields = {
   name: string;
@@ -15,6 +51,9 @@ type PersonFields = {
   birthDate: string;
   birthTime: string;
   birthPlace: string;
+  birthLat?: number;
+  birthLon?: number;
+  birthTimezone?: string | null;
 };
 
 const emptyPerson: PersonFields = {
@@ -59,7 +98,20 @@ export default function CheckoutClient({ product }: { product: Product }) {
     return t;
   }, [product.newPrice, bumpQuestion, bumpPartnerIdeal]);
 
-  const canSubmit = emailValid && noRefund && !submitting;
+  const personValid =
+    isValidBirthDate(person.birthDate) && isValidBirthTime(person.birthTime);
+  const partnerValid =
+    !product.twoPersons ||
+    (isValidBirthDate(partner.birthDate) && isValidBirthTime(partner.birthTime));
+  const questionValid =
+    !bumpQuestion || questionText.trim().length >= MIN_QUESTION_LENGTH;
+  const canSubmit =
+    emailValid &&
+    noRefund &&
+    personValid &&
+    partnerValid &&
+    questionValid &&
+    !submitting;
 
   const handlePopupAccept = () => {
     setBumpQuestion(true);
@@ -170,14 +222,32 @@ export default function CheckoutClient({ product }: { product: Product }) {
                 {bumpQuestion && (
                   <div className="mt-4 animate-fade-in">
                     <FieldLabel htmlFor="question">Твоят въпрос</FieldLabel>
+                    <div className="mb-3 rounded-md border border-gold/20 bg-card/40 p-3 space-y-1 text-xs text-parchment/75">
+                      <p>⚠️ Въпросът трябва да е свързан с теб лично.</p>
+                      <p>
+                        <span className="text-emerald-400">✅ Валиден пример:</span>{" "}
+                        &bdquo;Зададено ли ми е да бъда богат?&ldquo;
+                      </p>
+                      <p>
+                        <span className="text-red-400">❌ Невалиден:</span>{" "}
+                        &bdquo;Кога ще стана богат?&ldquo; (предсказания не са възможни)
+                      </p>
+                    </div>
                     <textarea
                       id="question"
                       value={questionText}
                       onChange={(e) => setQuestionText(e.target.value)}
                       rows={3}
-                      placeholder="Напр. „Кога ще срещна правилния партньор?“"
+                      placeholder="Напр. &bdquo;Зададено ли ми е да бъда богат?&ldquo;"
                       className="field resize-none"
                     />
+                    {questionText.length > 0 &&
+                      questionText.trim().length < MIN_QUESTION_LENGTH && (
+                        <p className="mt-2 text-sm text-amber-400">
+                          ⚠️ Минимум {MIN_QUESTION_LENGTH} символа ({questionText.trim().length}/
+                          {MIN_QUESTION_LENGTH})
+                        </p>
+                      )}
                   </div>
                 )}
               </BumpItem>
@@ -201,8 +271,23 @@ export default function CheckoutClient({ product }: { product: Product }) {
                   className="mt-1 w-5 h-5 accent-gold shrink-0"
                 />
                 <span className="text-sm text-parchment/80 leading-relaxed">
-                  Разбирам, че услугата е дигитална и се изпълнява незабавно.
-                  Губя правото си на отказ.
+                  Приемам всички{" "}
+                  <Link
+                    href="/terms"
+                    target="_blank"
+                    className="text-gold-light hover:text-gold underline underline-offset-2"
+                  >
+                    условия
+                  </Link>{" "}
+                  и{" "}
+                  <Link
+                    href="/privacy"
+                    target="_blank"
+                    className="text-gold-light hover:text-gold underline underline-offset-2"
+                  >
+                    политика за поверителност
+                  </Link>
+                  .
                 </span>
               </label>
             </FormCard>
@@ -359,10 +444,18 @@ function PersonSection({
   onChange: (v: PersonFields) => void;
   idPrefix: string;
 }) {
+  const [dateTouched, setDateTouched] = useState(false);
+  const [timeTouched, setTimeTouched] = useState(false);
+
   const update = <K extends keyof PersonFields>(
     key: K,
     value: PersonFields[K],
   ) => onChange({ ...data, [key]: value });
+
+  const dateError =
+    dateTouched && data.birthDate.length > 0 && !isValidBirthDate(data.birthDate);
+  const timeError =
+    timeTouched && data.birthTime.length > 0 && !isValidBirthTime(data.birthTime);
 
   return (
     <FormCard>
@@ -425,11 +518,20 @@ function PersonSection({
             type="text"
             inputMode="numeric"
             value={data.birthDate}
-            onChange={(e) => update("birthDate", e.target.value)}
+            onChange={(e) =>
+              update("birthDate", formatBirthDate(e.target.value))
+            }
+            onBlur={() => setDateTouched(true)}
             placeholder="DD/MM/YYYY"
-            className="field"
+            maxLength={10}
+            className={`field ${dateError ? "border-red-500/60" : ""}`}
             required
           />
+          {dateError && (
+            <p className="mt-2 text-sm text-red-400">
+              ❌ Невалидна дата — провери ден, месец и година
+            </p>
+          )}
         </div>
 
         <div>
@@ -439,23 +541,39 @@ function PersonSection({
             type="text"
             inputMode="numeric"
             value={data.birthTime}
-            onChange={(e) => update("birthTime", e.target.value)}
+            onChange={(e) =>
+              update("birthTime", formatBirthTime(e.target.value))
+            }
+            onBlur={() => setTimeTouched(true)}
             placeholder="HH:MM"
-            className="field"
+            maxLength={5}
+            className={`field ${timeError ? "border-red-500/60" : ""}`}
           />
+          {timeError && (
+            <p className="mt-2 text-sm text-red-400">
+              ❌ Невалиден час — 00:00 до 23:59
+            </p>
+          )}
         </div>
 
         <div className="sm:col-span-2">
           <FieldLabel htmlFor={`${idPrefix}-place`} required>
             Място на раждане
           </FieldLabel>
-          <input
+          <LocationAutocomplete
             id={`${idPrefix}-place`}
-            type="text"
             value={data.birthPlace}
-            onChange={(e) => update("birthPlace", e.target.value)}
+            timezone={data.birthTimezone}
+            onChange={(value, location) =>
+              onChange({
+                ...data,
+                birthPlace: value,
+                birthLat: location?.lat,
+                birthLon: location?.lon,
+                birthTimezone: location?.timezone ?? null,
+              })
+            }
             placeholder="София, България"
-            className="field"
             required
           />
         </div>
