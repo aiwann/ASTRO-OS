@@ -58,6 +58,7 @@ export default function Navigation() {
           <div className="hidden md:flex items-center gap-2">
             <DropdownTrigger
               label={t("nav.quickAnalyses")}
+              href="/quick-analyses"
               isOpen={open === "free"}
               onEnter={() => setOpen("free")}
               onLeave={() => setOpen(null)}
@@ -78,6 +79,7 @@ export default function Navigation() {
 
             <DropdownTrigger
               label={t("nav.deepAnalyses")}
+              href="/deep-analyses"
               isOpen={open === "paid"}
               onEnter={() => setOpen("paid")}
               onLeave={() => setOpen(null)}
@@ -205,9 +207,13 @@ export default function Navigation() {
 
             {/* Free tools section */}
             <section>
-              <p className="text-xs tracking-[0.3em] uppercase text-gold/60 mb-4">
-                {t("nav.quickAnalyses")}
-              </p>
+              <Link
+                href="/quick-analyses"
+                onClick={closeMobile}
+                className="block text-xs tracking-[0.3em] uppercase text-gold/60 hover:text-gold transition-colors mb-4"
+              >
+                {t("nav.quickAnalyses")} →
+              </Link>
               <ul className="space-y-1">
                 {freeTools.map((item) => (
                   <li key={item.href}>
@@ -225,9 +231,13 @@ export default function Navigation() {
 
             {/* Paid products section */}
             <section>
-              <p className="text-xs tracking-[0.3em] uppercase text-gold/60 mb-4">
-                {t("nav.deepAnalyses")}
-              </p>
+              <Link
+                href="/deep-analyses"
+                onClick={closeMobile}
+                className="block text-xs tracking-[0.3em] uppercase text-gold/60 hover:text-gold transition-colors mb-4"
+              >
+                {t("nav.deepAnalyses")} →
+              </Link>
               <ul className="space-y-1">
                 {paidProducts.map((item) => (
                   <li key={item.href}>
@@ -273,6 +283,7 @@ export default function Navigation() {
 
 function DropdownTrigger({
   label,
+  href,
   isOpen,
   onEnter,
   onLeave,
@@ -280,6 +291,7 @@ function DropdownTrigger({
   wide,
 }: {
   label: string;
+  href: string;
   isOpen: boolean;
   onEnter: () => void;
   onLeave: () => void;
@@ -288,19 +300,21 @@ function DropdownTrigger({
 }) {
   return (
     <div className="relative" onMouseEnter={onEnter} onMouseLeave={onLeave}>
-      <button
-        type="button"
-        className="px-4 py-2 text-sm text-parchment/90 hover:text-gold-light transition-colors inline-flex items-center gap-1"
-      >
-        {label}
+      <div className="inline-flex items-center">
+        <Link
+          href={href}
+          className="pl-4 pr-1 py-2 text-sm text-parchment/90 hover:text-gold-light transition-colors"
+        >
+          {label}
+        </Link>
         <span
-          className={`transition-transform text-xs ${
+          className={`pr-3 py-2 text-xs text-parchment/60 hover:text-gold-light transition-all cursor-default select-none ${
             isOpen ? "rotate-180" : ""
           }`}
         >
           ▾
         </span>
-      </button>
+      </div>
       {isOpen && (
         <div
           className={`absolute top-full left-0 pt-2 ${wide ? "w-96" : "w-64"}`}
