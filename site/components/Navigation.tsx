@@ -96,16 +96,15 @@ export default function Navigation() {
                     </Link>
                   </li>
                 ))}
-                <li>
-                  <Link
-                    href="/about"
-                    className="block px-5 py-2.5 text-sm text-gold/80 hover:bg-gold/10 hover:text-gold-light transition-colors border-t border-gold/15 mt-1 pt-3"
-                  >
-                    {t("nav.about")} →
-                  </Link>
-                </li>
               </ul>
             </DropdownTrigger>
+
+            <Link
+              href="/about"
+              className="px-4 py-2 text-sm text-parchment/90 hover:text-gold-light transition-colors"
+            >
+              {t("nav.about")}
+            </Link>
           </div>
 
           <div className="flex items-center gap-3">
@@ -244,18 +243,18 @@ export default function Navigation() {
                     </Link>
                   </li>
                 ))}
-                <li>
-                  <Link
-                    href="/about"
-                    onClick={closeMobile}
-                    className="flex items-center justify-between py-3 text-base text-gold/80 hover:text-gold-light transition-colors group"
-                  >
-                    <span>{t("nav.about")}</span>
-                    <span className="text-gold/50 group-hover:text-gold">→</span>
-                  </Link>
-                </li>
               </ul>
             </section>
+
+            {/* About standalone link */}
+            <Link
+              href="/about"
+              onClick={closeMobile}
+              className="flex items-center justify-between py-3 text-base text-gold/80 hover:text-gold-light transition-colors group border-t border-gold/15 pt-4"
+            >
+              <span>{t("nav.about")}</span>
+              <span className="text-gold/50 group-hover:text-gold">→</span>
+            </Link>
 
             {/* CTA */}
             <Link
