@@ -3,34 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
-import { LANGUAGES, TranslationKey } from "@/lib/i18n";
-
-type NavItem = { key: TranslationKey; href: string };
-
-const freeTools: NavItem[] = [
-  { key: "tool.personal-number", href: "/free-tools/personal-number" },
-  { key: "tool.love-percentage", href: "/free-tools/love-percentage" },
-  { key: "tool.archetype", href: "/free-tools/archetype" },
-  { key: "tool.energy", href: "/free-tools/energy" },
-  { key: "tool.social-image", href: "/free-tools/social-image" },
-];
-
-const paidProducts: NavItem[] = [
-  { key: "product.personal-profile", href: "/products/personal-profile" },
-  { key: "product.synastry", href: "/products/synastry" },
-  { key: "product.yearly-analysis", href: "/products/yearly-analysis" },
-  { key: "product.archetype-profile", href: "/products/archetype-profile" },
-  { key: "product.life-map", href: "/products/life-map" },
-  { key: "product.hidden-potential", href: "/products/hidden-potential" },
-  { key: "product.energy-profile", href: "/products/energy-profile" },
-  { key: "product.full-life-code", href: "/products/full-life-code" },
-];
-
-type OpenMenu = "free" | "paid" | null;
+import { LANGUAGES } from "@/lib/i18n";
 
 export default function Navigation() {
   const { t, language, switchLanguage } = useLanguage();
-  const [open, setOpen] = useState<OpenMenu>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -55,52 +31,19 @@ export default function Navigation() {
           </Link>
 
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-2">
-            <DropdownTrigger
-              label={t("nav.quickAnalyses")}
+          <div className="hidden md:flex items-center gap-1">
+            <Link
               href="/quick-analyses"
-              isOpen={open === "free"}
-              onEnter={() => setOpen("free")}
-              onLeave={() => setOpen(null)}
+              className="px-4 py-2 text-sm text-parchment/90 hover:text-gold-light transition-colors"
             >
-              <ul className="py-2">
-                {freeTools.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className="block px-5 py-2.5 text-sm text-parchment/90 hover:bg-gold/10 hover:text-gold-light transition-colors"
-                    >
-                      {t(item.key)}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </DropdownTrigger>
-
-            <DropdownTrigger
-              label={t("nav.deepAnalyses")}
+              {t("nav.quickAnalyses")}
+            </Link>
+            <Link
               href="/deep-analyses"
-              isOpen={open === "paid"}
-              onEnter={() => setOpen("paid")}
-              onLeave={() => setOpen(null)}
+              className="px-4 py-2 text-sm text-parchment/90 hover:text-gold-light transition-colors"
             >
-              <ul className="py-2">
-                {paidProducts.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className="flex items-center justify-between gap-4 px-5 py-2.5 text-sm text-parchment/90 hover:bg-gold/10 hover:text-gold-light transition-colors group"
-                    >
-                      <span>{t(item.key)}</span>
-                      <span className="text-gold/50 group-hover:text-gold group-hover:translate-x-0.5 transition-all">
-                        →
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </DropdownTrigger>
-
+              {t("nav.deepAnalyses")}
+            </Link>
             <Link
               href="/about"
               className="px-4 py-2 text-sm text-parchment/90 hover:text-gold-light transition-colors"
@@ -185,9 +128,9 @@ export default function Navigation() {
             </button>
           </div>
 
-          <div className="px-6 py-8 space-y-10">
+          <div className="px-6 py-8 space-y-3">
             {/* Language switcher (mobile) */}
-            <div className="flex items-center gap-2 border border-gold/25 rounded-md p-1 w-fit mx-auto">
+            <div className="flex items-center gap-2 border border-gold/25 rounded-md p-1 w-fit mx-auto mb-8">
               {LANGUAGES.map((lng) => (
                 <button
                   key={lng.code}
@@ -205,125 +148,45 @@ export default function Navigation() {
               ))}
             </div>
 
-            {/* Free tools section */}
-            <section>
-              <Link
-                href="/quick-analyses"
-                onClick={closeMobile}
-                className="block text-xs tracking-[0.3em] uppercase text-gold/60 hover:text-gold transition-colors mb-4"
-              >
-                {t("nav.quickAnalyses")} →
-              </Link>
-              <ul className="space-y-1">
-                {freeTools.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={closeMobile}
-                      className="block py-3 text-lg text-parchment/90 hover:text-gold-light border-b border-gold/10 transition-colors"
-                    >
-                      {t(item.key)}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
+            <Link
+              href="/quick-analyses"
+              onClick={closeMobile}
+              className="flex items-center justify-between py-4 border-b border-gold/10 text-lg text-parchment/90 hover:text-gold-light transition-colors group"
+            >
+              <span>{t("nav.quickAnalyses")}</span>
+              <span className="text-gold/50 group-hover:text-gold">→</span>
+            </Link>
 
-            {/* Paid products section */}
-            <section>
-              <Link
-                href="/deep-analyses"
-                onClick={closeMobile}
-                className="block text-xs tracking-[0.3em] uppercase text-gold/60 hover:text-gold transition-colors mb-4"
-              >
-                {t("nav.deepAnalyses")} →
-              </Link>
-              <ul className="space-y-1">
-                {paidProducts.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={closeMobile}
-                      className="flex items-center justify-between py-3 border-b border-gold/10 text-base text-parchment/90 hover:text-gold-light transition-colors group"
-                    >
-                      <span>{t(item.key)}</span>
-                      <span className="text-gold/50 group-hover:text-gold">
-                        →
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
+            <Link
+              href="/deep-analyses"
+              onClick={closeMobile}
+              className="flex items-center justify-between py-4 border-b border-gold/10 text-lg text-parchment/90 hover:text-gold-light transition-colors group"
+            >
+              <span>{t("nav.deepAnalyses")}</span>
+              <span className="text-gold/50 group-hover:text-gold">→</span>
+            </Link>
 
-            {/* About standalone link */}
             <Link
               href="/about"
               onClick={closeMobile}
-              className="flex items-center justify-between py-3 text-base text-gold/80 hover:text-gold-light transition-colors group border-t border-gold/15 pt-4"
+              className="flex items-center justify-between py-4 border-b border-gold/10 text-lg text-gold/80 hover:text-gold-light transition-colors group"
             >
               <span>{t("nav.about")}</span>
               <span className="text-gold/50 group-hover:text-gold">→</span>
             </Link>
 
-            {/* CTA */}
-            <Link
-              href="/products/personal-profile"
-              onClick={closeMobile}
-              className="block w-full text-center py-4 bg-gold text-dark font-semibold rounded-md hover:bg-gold-light transition-colors text-lg"
-            >
-              {t("nav.startNow")}
-            </Link>
+            <div className="pt-6">
+              <Link
+                href="/products/personal-profile"
+                onClick={closeMobile}
+                className="block w-full text-center py-4 bg-gold text-dark font-semibold rounded-md hover:bg-gold-light transition-colors text-lg"
+              >
+                {t("nav.startNow")}
+              </Link>
+            </div>
           </div>
         </div>
       )}
     </>
-  );
-}
-
-function DropdownTrigger({
-  label,
-  href,
-  isOpen,
-  onEnter,
-  onLeave,
-  children,
-  wide,
-}: {
-  label: string;
-  href: string;
-  isOpen: boolean;
-  onEnter: () => void;
-  onLeave: () => void;
-  children: React.ReactNode;
-  wide?: boolean;
-}) {
-  return (
-    <div className="relative" onMouseEnter={onEnter} onMouseLeave={onLeave}>
-      <div className="inline-flex items-center">
-        <Link
-          href={href}
-          className="pl-4 pr-1 py-2 text-sm text-parchment/90 hover:text-gold-light transition-colors"
-        >
-          {label}
-        </Link>
-        <span
-          className={`pr-3 py-2 text-xs text-parchment/60 hover:text-gold-light transition-all cursor-default select-none ${
-            isOpen ? "rotate-180" : ""
-          }`}
-        >
-          ▾
-        </span>
-      </div>
-      {isOpen && (
-        <div
-          className={`absolute top-full left-0 pt-2 ${wide ? "w-96" : "w-64"}`}
-        >
-          <div className="rounded-lg border border-gold/25 bg-card/95 backdrop-blur-md shadow-2xl shadow-black/50 animate-fade-in">
-            {children}
-          </div>
-        </div>
-      )}
-    </div>
   );
 }
