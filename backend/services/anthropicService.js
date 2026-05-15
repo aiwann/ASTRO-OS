@@ -5,6 +5,14 @@ const db = require('../database/db');
 const { decrypt } = require('../utils/encryption');
 
 async function getClient() {
+  // Ако има ENV variable (Railway/production) — използвай директно
+  if (process.env.ANTHROPIC_API_KEY) {
+    return {
+      client: new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }),
+      model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5',
+    };
+  }
+  // Fallback: чети от DB (Electron desktop app)
   const row = await db.prepare('SELECT encrypted_api_key, encryption_iv, model FROM settings WHERE id = 1').get();
   if (!row || !row.encrypted_api_key) {
     throw new Error('API ключът не е конфигуриран. Моля, добавете го в Настройки.');
