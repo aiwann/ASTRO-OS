@@ -28,13 +28,13 @@ export default function Home() {
   return (
     <>
       {/* Hero */}
-      <section className="relative min-h-[calc(100vh-5rem)] flex items-center justify-center px-6">
+      <section className="relative min-h-[calc(100vh-7.25rem)] flex items-center justify-center px-6">
         <div className="max-w-4xl mx-auto text-center animate-fade-in">
           <p className="text-gold/70 text-xs sm:text-sm tracking-[0.4em] uppercase mb-6">
             {t("home.badge")}
           </p>
 
-          <h1 className="font-serif text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-tight leading-[0.95]">
+          <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-light tracking-tight leading-[1.05]">
             <span className="gold-gradient-text">{t("home.title")}</span>
           </h1>
 
@@ -49,7 +49,7 @@ export default function Home() {
 
           <div className="mt-12 flex flex-col items-center gap-4">
             <Link
-              href="/analyses"
+              href="/quick-analyses"
               className="group px-8 py-4 bg-gold text-dark font-semibold rounded-md hover:bg-gold-light transition-all hover:shadow-[0_0_30px_rgba(212,175,55,0.4)] inline-flex items-center gap-2"
             >
               {t("home.cta.viewAnalyses")}
@@ -59,12 +59,12 @@ export default function Home() {
             </Link>
 
             <Link
-              href="/#zodiac"
-              className="inline-flex items-center gap-2 text-sm text-parchment/50 hover:text-gold transition-colors group"
+              href="/deep-analyses"
+              className="inline-flex items-center gap-2 text-sm text-parchment/60 hover:text-gold transition-colors group"
             >
               <span className="text-gold/50 group-hover:text-gold transition-colors">✦</span>
-              или виж безплатния си седмичен хороскоп
-              <span className="group-hover:translate-y-0.5 transition-transform">↓</span>
+              {t("home.cta.viewDeep")}
+              <span className="group-hover:translate-x-0.5 transition-transform">→</span>
             </Link>
           </div>
         </div>

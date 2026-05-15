@@ -14,6 +14,7 @@ const dictionaries = {
     "nav.openMenu": "Отвори меню",
     "nav.closeMenu": "Затвори меню",
     "nav.about": "Какво е Астро ОС",
+    "nav.faq": "Въпроси",
 
     // Free tool names (used in nav)
     "tool.personal-number": "Личен Код",
@@ -34,11 +35,12 @@ const dictionaries = {
 
     // Home — hero
     "home.badge": "✦ СЛЕДВАЩО ПОКОЛЕНИЕ AI АСТРОЛОГИЯ",
-    "home.title": "Астро ОС",
-    "home.subtitle1": "Остави науката да отговори на твоите въпроси",
-    "home.subtitle2":
-      "Персонален анализ в минути. Без астролог. Без чакане.",
-    "home.cta.viewAnalyses": "Разгледай анализите",
+    "home.title": "Анализ, който знае повече за теб от теб",
+    "home.subtitle1":
+      "AI генерира 15+ страници персонален астрологичен анализ на база точните ти данни.",
+    "home.subtitle2": "Готов на имейла ти за 5 минути.",
+    "home.cta.viewAnalyses": "Виж безплатния си архетип",
+    "home.cta.viewDeep": "Виж пълните анализи",
     "home.cta.freeTool": "Безплатен инструмент",
 
     // Home — how it works
@@ -151,6 +153,7 @@ const dictionaries = {
     "nav.openMenu": "Open menu",
     "nav.closeMenu": "Close menu",
     "nav.about": "What is Astro OS",
+    "nav.faq": "FAQ",
 
     // Free tool names
     "tool.personal-number": "Personal Number",
@@ -177,6 +180,7 @@ const dictionaries = {
     "home.subtitle2":
       "No waiting, no confusion, no unnecessary costs — for the first time, fast doesn't mean low quality.",
     "home.cta.viewAnalyses": "Explore analyses",
+    "home.cta.viewDeep": "See full analyses",
     "home.cta.freeTool": "Free tool",
 
     // Home — how it works

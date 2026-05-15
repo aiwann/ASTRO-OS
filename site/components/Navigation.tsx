@@ -19,7 +19,21 @@ export default function Navigation() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-40 backdrop-blur-md bg-dark/70 border-b border-gold/15">
+      {/* Promo banner — fixed above the header */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-[#0a0810] border-b border-gold/20">
+        <div className="max-w-7xl mx-auto px-4 py-2 text-center">
+          <p className="text-[11px] sm:text-xs tracking-[0.18em] sm:tracking-[0.25em] uppercase text-parchment/80">
+            <span className="text-gold">✦</span>{" "}
+            <span className="text-gold/90">ПРОМОЦИЯ САМО СЕГА</span>{" "}
+            <span className="text-parchment/60">—</span>{" "}
+            <span className="hidden sm:inline">Стартови цени на всички анализи</span>
+            <span className="sm:hidden">Стартови цени</span>{" "}
+            <span className="text-gold">✦</span>
+          </p>
+        </div>
+      </div>
+
+      <header className="fixed top-9 left-0 right-0 z-40 backdrop-blur-md bg-dark/70 border-b border-gold/15">
         <nav className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link
             href="/"
@@ -42,6 +56,12 @@ export default function Navigation() {
               className="px-4 py-2 text-sm text-parchment/90 hover:text-gold-light transition-colors"
             >
               {t("nav.deepAnalyses")}
+            </Link>
+            <Link
+              href="/faq"
+              className="px-4 py-2 text-sm text-parchment/90 hover:text-gold-light transition-colors"
+            >
+              {t("nav.faq")}
             </Link>
             <Link
               href="/about"
@@ -124,6 +144,15 @@ export default function Navigation() {
               className="flex items-center justify-between py-4 border-b border-gold/10 text-lg text-parchment/90 hover:text-gold-light transition-colors group"
             >
               <span>{t("nav.deepAnalyses")}</span>
+              <span className="text-gold/50 group-hover:text-gold">→</span>
+            </Link>
+
+            <Link
+              href="/faq"
+              onClick={closeMobile}
+              className="flex items-center justify-between py-4 border-b border-gold/10 text-lg text-parchment/90 hover:text-gold-light transition-colors group"
+            >
+              <span>{t("nav.faq")}</span>
               <span className="text-gold/50 group-hover:text-gold">→</span>
             </Link>
 

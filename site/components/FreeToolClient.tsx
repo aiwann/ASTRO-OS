@@ -91,10 +91,19 @@ export default function FreeToolClient({ tool }: { tool: ToolSlug }) {
           renderResult={(date) => {
             const lp = lifePathNumber(date);
             return (
-              <ResultCard
-                title={`Твоето главно число е ${lp}`}
-                description={NUMBER_DESCRIPTIONS[lp] ?? ""}
-              />
+              <>
+                <ResultCard
+                  title={`Твоето главно число е ${lp}`}
+                  description={NUMBER_DESCRIPTIONS[lp] ?? ""}
+                />
+                {product && (
+                  <BridgeBlock
+                    productTitle={product.title}
+                    slug={product.slug}
+                    newPrice={product.newPrice}
+                  />
+                )}
+              </>
             );
           }}
         />
@@ -107,10 +116,19 @@ export default function FreeToolClient({ tool }: { tool: ToolSlug }) {
             const lp = lifePathNumber(date);
             const a = ARCHETYPES[lp];
             return (
-              <ResultCard
-                title={`Ти си ${a.name} ${a.emoji}`}
-                description={a.description}
-              />
+              <>
+                <ResultCard
+                  title={`Ти си ${a.name} ${a.emoji}`}
+                  description={a.description}
+                />
+                {product && (
+                  <BridgeBlock
+                    productTitle={product.title}
+                    slug={product.slug}
+                    newPrice={product.newPrice}
+                  />
+                )}
+              </>
             );
           }}
         />
@@ -122,10 +140,19 @@ export default function FreeToolClient({ tool }: { tool: ToolSlug }) {
           renderResult={(date) => {
             const e = getElement(date);
             return (
-              <ResultCard
-                title={`Твоята стихия е ${e.element} ${e.emoji}`}
-                description={e.description}
-              />
+              <>
+                <ResultCard
+                  title={`Твоята стихия е ${e.element} ${e.emoji}`}
+                  description={e.description}
+                />
+                {product && (
+                  <BridgeBlock
+                    productTitle={product.title}
+                    slug={product.slug}
+                    newPrice={product.newPrice}
+                  />
+                )}
+              </>
             );
           }}
         />
@@ -138,14 +165,33 @@ export default function FreeToolClient({ tool }: { tool: ToolSlug }) {
             const lp = lifePathNumber(date);
             const s = SOCIAL_IMAGE[lp];
             return (
-              <ResultCard title={s.headline} description={s.description} />
+              <>
+                <ResultCard title={s.headline} description={s.description} />
+                {product && (
+                  <BridgeBlock
+                    productTitle={product.title}
+                    slug={product.slug}
+                    newPrice={product.newPrice}
+                  />
+                )}
+              </>
             );
           }}
         />
       )}
 
       {tool === "love-percentage" && (
-        <LoveTool />
+        <LoveTool
+          renderBridge={() =>
+            product && (
+              <BridgeBlock
+                productTitle={product.title}
+                slug={product.slug}
+                newPrice={product.newPrice}
+              />
+            )
+          }
+        />
       )}
 
       {product && (
@@ -220,7 +266,11 @@ function SingleDateTool({
   );
 }
 
-function LoveTool() {
+function LoveTool({
+  renderBridge,
+}: {
+  renderBridge: () => React.ReactNode;
+}) {
   const [name1, setName1] = useState("");
   const [name2, setName2] = useState("");
   const [date1, setDate1] = useState("");
@@ -321,12 +371,15 @@ function LoveTool() {
       </form>
 
       {submitted && valid && (
-        <LoveResultBlock
-          name1={name1 || "Ти"}
-          name2={name2 || "Той/тя"}
-          date1={date1}
-          date2={date2}
-        />
+        <>
+          <LoveResultBlock
+            name1={name1 || "Ти"}
+            name2={name2 || "Той/тя"}
+            date1={date1}
+            date2={date2}
+          />
+          {renderBridge()}
+        </>
       )}
 
       <FieldStyles />
@@ -379,6 +432,42 @@ function ResultCard({
       <p className="mt-6 text-parchment/85 leading-relaxed">{description}</p>
       <p className="mt-6 text-parchment/60 italic">
         Пълният анализ разкрива 10× повече.
+      </p>
+    </div>
+  );
+}
+
+function BridgeBlock({
+  productTitle,
+  slug,
+  newPrice,
+}: {
+  productTitle: string;
+  slug: string;
+  newPrice: number;
+}) {
+  return (
+    <div className="mt-8 rounded-2xl border border-gold/35 bg-gradient-to-b from-gold/[0.07] to-card/40 backdrop-blur-sm p-7 sm:p-9 text-center animate-fade-in">
+      <p className="text-xs tracking-[0.3em] uppercase text-gold/80 mb-4">
+        ✦ Това е само върхът на айсберга ✦
+      </p>
+      <h3 className="font-serif text-2xl sm:text-3xl font-light leading-tight mb-4">
+        <span className="gold-gradient-text">
+          Виж пълния си 15-страничен {productTitle}
+        </span>
+      </h3>
+      <p className="text-parchment/75 leading-relaxed max-w-lg mx-auto mb-7">
+        С пълни планетарни позиции, аспекти, кармични точки и персонална мисия.
+      </p>
+      <Link
+        href={`/products/${slug}`}
+        className="inline-flex items-center gap-2 px-7 py-3.5 bg-gold text-dark font-semibold rounded-md hover:bg-gold-light transition-all hover:shadow-[0_0_30px_rgba(212,175,55,0.4)] group"
+      >
+        Вземи пълния анализ — {formatEUR(newPrice)}
+        <span className="group-hover:translate-x-1 transition-transform">→</span>
+      </Link>
+      <p className="mt-4 text-xs tracking-wider uppercase text-parchment/45">
+        Готов за 5 минути • PDF на имейла
       </p>
     </div>
   );

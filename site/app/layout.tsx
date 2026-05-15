@@ -35,7 +35,7 @@ export default function RootLayout({
       <body className="bg-dark text-parchment antialiased">
         <StarField />
         <Navigation />
-        <main className="relative z-10 pt-20">{children}</main>
+        <main className="relative z-10 pt-[7.25rem]">{children}</main>
         <CookieBanner />
       </body>
     </html>

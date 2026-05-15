@@ -3,12 +3,13 @@ import { PRODUCTS, formatEUR } from "@/lib/products";
 
 const productOrder = [
   "personal-profile",
-  "synastry",
-  "yearly-analysis",
   "archetype-profile",
+  "yearly-analysis",
   "life-map",
   "hidden-potential",
   "energy-profile",
+  "synastry",
+  "ideal-partner",
   "full-life-code",
 ];
 
@@ -20,6 +21,7 @@ const colorMap: Record<string, string> = {
   "life-map": "from-teal-900/30 to-transparent",
   "hidden-potential": "from-violet-900/30 to-transparent",
   "energy-profile": "from-orange-900/30 to-transparent",
+  "ideal-partner": "from-pink-900/30 to-transparent",
   "full-life-code": "from-gold/15 to-transparent",
 };
 
