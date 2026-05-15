@@ -97,7 +97,18 @@ export default function ProductPage({
           </p>
         </section>
 
-        <section className="mt-20 rounded-2xl border border-gold/25 bg-card/70 backdrop-blur-sm p-6 sm:p-10">
+        <section className="mt-20 rounded-2xl border border-gold/25 bg-card/60 backdrop-blur-sm p-6 sm:p-10">
+          <h2 className="font-serif text-2xl sm:text-3xl text-center mb-3">
+            <span className="text-parchment">Какво </span>
+            <span className="gold-gradient-text">представлява</span>
+          </h2>
+          <div className="mx-auto w-16 h-px bg-gradient-to-r from-transparent via-gold/60 to-transparent mb-6" />
+          <p className="text-parchment/85 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto text-center font-serif">
+            {product.description}
+          </p>
+        </section>
+
+        <section className="mt-16 rounded-2xl border border-gold/25 bg-card/70 backdrop-blur-sm p-6 sm:p-10">
           <h2 className="font-serif text-2xl sm:text-3xl text-center mb-8">
             <span className="text-parchment">Какво </span>
             <span className="gold-gradient-text">включва</span>
