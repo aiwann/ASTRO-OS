@@ -1,24 +1,40 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
-const STORAGE_KEY = "astro-cookie-consent";
+export const COOKIE_STORAGE_KEY = "astro-cookie-consent";
+export const COOKIE_CONSENT_EVENT = "astro-cookie-consent-change";
 
-type Consent = "all" | "necessary";
+export type CookieConsent = "all" | "necessary";
+
+/**
+ * Helper за други компоненти (напр. Clarity, Pixel) — да проверяват
+ * текущото съгласие без да достъпват директно localStorage.
+ */
+export function getCookieConsent(): CookieConsent | null {
+  if (typeof window === "undefined") return null;
+  const v = window.localStorage.getItem(COOKIE_STORAGE_KEY);
+  return v === "all" || v === "necessary" ? v : null;
+}
 
 export default function CookieBanner() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(COOKIE_STORAGE_KEY);
     if (!stored) {
       const t = setTimeout(() => setVisible(true), 600);
       return () => clearTimeout(t);
     }
   }, []);
 
-  const accept = (choice: Consent) => {
-    localStorage.setItem(STORAGE_KEY, choice);
+  const accept = (choice: CookieConsent) => {
+    localStorage.setItem(COOKIE_STORAGE_KEY, choice);
+    // Информираме другите слушатели (Clarity, Pixel и т.н.), че имаме съгласие.
+    window.dispatchEvent(
+      new CustomEvent(COOKIE_CONSENT_EVENT, { detail: choice }),
+    );
     setVisible(false);
   };
 
@@ -30,6 +46,14 @@ export default function CookieBanner() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
           <p className="text-sm sm:text-base text-parchment/90 flex-1">
             Използваме бисквитки за функционалност, анализ и маркетинг.
+            Виж нашата{" "}
+            <Link
+              href="/privacy"
+              className="text-gold hover:text-gold-light underline underline-offset-2"
+            >
+              политика за поверителност
+            </Link>
+            .
           </p>
           <div className="flex gap-3 w-full sm:w-auto">
             <button

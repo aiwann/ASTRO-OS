@@ -26,8 +26,8 @@ export default function Navigation() {
             <span className="text-gold">✦</span>{" "}
             <span className="text-gold/90">ПРОМОЦИЯ САМО СЕГА</span>{" "}
             <span className="text-parchment/60">—</span>{" "}
-            <span className="hidden sm:inline">Стартови цени на всички анализи</span>
-            <span className="sm:hidden">Стартови цени</span>{" "}
+            <span className="hidden sm:inline">Пълен Анализ от 11.99 евро</span>
+            <span className="sm:hidden">от 11.99 €</span>{" "}
             <span className="text-gold">✦</span>
           </p>
         </div>

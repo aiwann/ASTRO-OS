@@ -203,6 +203,25 @@ export function formatEUR(amount: number): string {
   return `€${amount.toFixed(2)}`;
 }
 
+// Фиксиран курс на БНБ: 1 EUR = 1.95583 BGN
+export const EUR_TO_BGN = 1.95583;
+
+export function eurToBgn(amount: number): number {
+  return amount * EUR_TO_BGN;
+}
+
+export function formatBGN(amount: number): string {
+  return `${eurToBgn(amount).toFixed(2)} лв`;
+}
+
+/**
+ * Връща дуална цена във формат "€11.99 / 23.45 лв" като plain string.
+ * За JSX варианти с по-фин стайлинг — рендвай ръчно.
+ */
+export function formatDualPrice(amount: number): string {
+  return `${formatEUR(amount)} / ${formatBGN(amount)}`;
+}
+
 export function computeItemValues(product: Product): {
   perItem: number;
   total: number;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { formatEUR, getProduct } from "@/lib/products";
+import { formatBGN, formatEUR, getProduct } from "@/lib/products";
 import {
   ARCHETYPES,
   SOCIAL_IMAGE,
@@ -466,7 +466,10 @@ function BridgeBlock({
         Вземи пълния анализ — {formatEUR(newPrice)}
         <span className="group-hover:translate-x-1 transition-transform">→</span>
       </Link>
-      <p className="mt-4 text-xs tracking-wider uppercase text-parchment/45">
+      <p className="mt-2 text-xs text-parchment/55">
+        ≈ {formatBGN(newPrice)}
+      </p>
+      <p className="mt-3 text-xs tracking-wider uppercase text-parchment/45">
         Готов за 5 минути • PDF на имейла
       </p>
     </div>

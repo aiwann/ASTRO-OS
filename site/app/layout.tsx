@@ -4,6 +4,8 @@ import "./globals.css";
 import Navigation from "@/components/Navigation";
 import StarField from "@/components/StarField";
 import CookieBanner from "@/components/CookieBanner";
+import Footer from "@/components/Footer";
+import Clarity from "@/components/Clarity";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin", "cyrillic"],
@@ -36,7 +38,9 @@ export default function RootLayout({
         <StarField />
         <Navigation />
         <main className="relative z-10 pt-[7.25rem]">{children}</main>
+        <Footer />
         <CookieBanner />
+        <Clarity />
       </body>
     </html>
   );

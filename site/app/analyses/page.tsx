@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PRODUCTS, formatEUR } from "@/lib/products";
+import { PRODUCTS, formatBGN, formatEUR } from "@/lib/products";
 
 export const metadata = {
   title: "Всички Анализи — Астро ОС",
@@ -171,13 +171,18 @@ export default function AnalysesPage() {
                     &bdquo;{product.hook}&ldquo;
                   </p>
 
-                  <div className="flex items-baseline gap-3 mb-4">
-                    <span className="text-parchment/35 line-through text-sm">
-                      {formatEUR(product.oldPrice)}
-                    </span>
-                    <span className="font-serif text-2xl font-semibold text-emerald-400">
-                      {formatEUR(product.newPrice)}
-                    </span>
+                  <div className="mb-4">
+                    <div className="flex items-baseline gap-3">
+                      <span className="text-parchment/35 line-through text-sm">
+                        {formatEUR(product.oldPrice)}
+                      </span>
+                      <span className="font-serif text-2xl font-semibold text-emerald-400">
+                        {formatEUR(product.newPrice)}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-xs text-parchment/45">
+                      ≈ {formatBGN(product.newPrice)}
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-2 text-gold text-sm font-medium">

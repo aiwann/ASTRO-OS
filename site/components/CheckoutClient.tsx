@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Product, formatEUR } from "@/lib/products";
+import { Product, formatBGN, formatEUR } from "@/lib/products";
 import { TranslationKey } from "@/lib/i18n";
 import { useLanguage } from "@/hooks/useLanguage";
 import BumpPopup from "@/components/BumpPopup";
@@ -429,9 +429,14 @@ export default function CheckoutClient({ product }: { product: Product }) {
                   <span className="font-serif text-xl text-parchment">
                     {t("checkout.total")}
                   </span>
-                  <span className="font-serif text-3xl font-semibold gold-gradient-text">
-                    {formatEUR(total)}
-                  </span>
+                  <div className="text-right">
+                    <div className="font-serif text-3xl font-semibold gold-gradient-text">
+                      {formatEUR(total)}
+                    </div>
+                    <div className="text-xs text-parchment/55 mt-1">
+                      ≈ {formatBGN(total)}
+                    </div>
+                  </div>
                 </div>
               </div>
 

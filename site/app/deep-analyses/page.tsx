@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PRODUCTS, formatEUR } from "@/lib/products";
+import { PRODUCTS, formatEUR, formatBGN } from "@/lib/products";
 
 const productOrder = [
   "personal-profile",
@@ -115,13 +115,18 @@ export default function DeepAnalysesPage() {
                 </ul>
 
                 {/* Price */}
-                <div className="flex items-baseline gap-3 mb-5">
-                  <span className="text-parchment/40 line-through text-sm">
-                    {formatEUR(product.oldPrice)}
-                  </span>
-                  <span className="font-serif text-2xl font-semibold text-emerald-400">
-                    {formatEUR(product.newPrice)}
-                  </span>
+                <div className="mb-5">
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-parchment/40 line-through text-sm">
+                      {formatEUR(product.oldPrice)}
+                    </span>
+                    <span className="font-serif text-2xl font-semibold text-emerald-400">
+                      {formatEUR(product.newPrice)}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs text-parchment/45 tracking-wide">
+                    ≈ {formatBGN(product.newPrice)}
+                  </div>
                 </div>
 
                 {/* CTA */}

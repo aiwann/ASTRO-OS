@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import {
   PRODUCT_SLUGS,
   computeItemValues,
+  formatBGN,
   formatEUR,
   getProduct,
 } from "@/lib/products";
@@ -67,13 +68,18 @@ export default function ProductPage({
             {product.duration}
           </p>
 
-          <div className="mt-10 flex items-baseline justify-center gap-4">
-            <span className="text-2xl sm:text-3xl text-red-400/80 line-through">
-              {formatEUR(product.oldPrice)}
-            </span>
-            <span className="font-serif text-5xl sm:text-6xl font-semibold text-emerald-400">
-              {formatEUR(product.newPrice)}
-            </span>
+          <div className="mt-10">
+            <div className="flex items-baseline justify-center gap-4">
+              <span className="text-2xl sm:text-3xl text-red-400/80 line-through">
+                {formatEUR(product.oldPrice)}
+              </span>
+              <span className="font-serif text-5xl sm:text-6xl font-semibold text-emerald-400">
+                {formatEUR(product.newPrice)}
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-parchment/55 tracking-wide">
+              ≈ {formatBGN(product.newPrice)}
+            </p>
           </div>
 
           <Link
@@ -145,9 +151,14 @@ export default function ProductPage({
               <span className="font-serif text-xl sm:text-2xl text-parchment">
                 Твоята цена:
               </span>
-              <span className="font-serif text-3xl sm:text-4xl font-semibold text-emerald-400">
-                {formatEUR(product.newPrice)}
-              </span>
+              <div className="text-right">
+                <div className="font-serif text-3xl sm:text-4xl font-semibold text-emerald-400">
+                  {formatEUR(product.newPrice)}
+                </div>
+                <div className="text-xs text-parchment/55 mt-1">
+                  ≈ {formatBGN(product.newPrice)}
+                </div>
+              </div>
             </div>
           </div>
 
