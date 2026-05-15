@@ -32,7 +32,15 @@ async function generateText(systemPrompt, userPrompt, options = {}) {
 
 async function generateSection(sectionKey, sectionConfig, res) {
   const { client, model } = await getClient();
+  return generateSectionWithClient(client, model, sectionKey, sectionConfig, res);
+}
 
+/**
+ * Генерира секция с предварително създаден client (без DB lookup).
+ * Използва се при паралелна генерация — client се извлича веднъж,
+ * после се подава на всички паралелни заявки.
+ */
+async function generateSectionWithClient(client, model, sectionKey, sectionConfig, res) {
   res.write(`data: ${JSON.stringify({ type: 'section_start', section: sectionKey })}\n\n`);
 
   let fullText = '';
@@ -125,4 +133,4 @@ async function testConnection(apiKey) {
   return message.content[0].text;
 }
 
-module.exports = { generateText, generateSection, streamChat, rewriteSection, testConnection };
+module.exports = { generateText, generateSection, generateSectionWithClient, getClient, streamChat, rewriteSection, testConnection };

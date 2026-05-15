@@ -7,14 +7,65 @@ const {
 const { ascendant, midheaven, placidusHouses, getHouseForPlanet, HOUSE_MEANINGS_BG } = require('../astrology/houses');
 const { findAspects, getDominantPlanets, getDominantElement, getDominantQuality } = require('../astrology/aspects');
 
-function parseDateTime(dateStr, timeStr) {
+function getTimezoneOffsetMinutes(tz, date) {
+  // Returns offset in minutes (positive = east of UTC, e.g. UTC+3 → 180)
+  const utcStr = date.toLocaleString('en-US', { timeZone: 'UTC' });
+  const localStr = date.toLocaleString('en-US', { timeZone: tz });
+  return Math.round((new Date(localStr) - new Date(utcStr)) / 60000);
+}
+
+function parseDateTime(dateStr, timeStr, lat, lon) {
+  // Валидираме формата на датата ПРЕДИ изчисленията. Без това невалидни входове
+  // (празна дата, "not-a-date", "1990-6-19" без водещи нули) тихо преминават с
+  // NaN стойности и клиентът получава боклук анализ. Better fail loud.
+  if (typeof dateStr !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    throw new Error(`Невалидна дата: "${dateStr}". Очакван формат: YYYY-MM-DD`);
+  }
   const [year, month, day] = dateStr.split('-').map(Number);
+  if (month < 1 || month > 12 || day < 1 || day > 31) {
+    throw new Error(`Невалидна дата: "${dateStr}" (месец/ден извън диапазон)`);
+  }
+  // Проверка за реална календарна валидност (отхвърля 30 фев, 31 апр и т.н.)
+  const testDate = new Date(`${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`);
+  if (isNaN(testDate.getTime()) || testDate.getUTCMonth() + 1 !== month || testDate.getUTCDate() !== day) {
+    throw new Error(`Невалидна дата: "${dateStr}" — тази дата не съществува.`);
+  }
   let hour = 12, minute = 0;
   if (timeStr) {
     const [h, m] = timeStr.split(':').map(Number);
-    hour = h || 12;
-    minute = m || 0;
+    hour = isNaN(h) ? 12 : h;
+    minute = isNaN(m) ? 0 : m;
   }
+
+  // Convert local birth time → UTC using timezone from coordinates
+  if (lat != null && lon != null) {
+    try {
+      const { find } = require('geo-tz');
+      const tzList = find(lat, lon);
+      const tz = tzList && tzList[0] ? tzList[0] : 'UTC';
+
+      const pad = n => String(n).padStart(2, '0');
+      const approxUTC = new Date(`${year}-${pad(month)}-${pad(day)}T${pad(hour)}:${pad(minute)}:00Z`);
+      const offsetMin = getTimezoneOffsetMinutes(tz, approxUTC);
+
+      // UTC = local − offset
+      const utcMs = approxUTC.getTime() - offsetMin * 60000;
+      const utcDate = new Date(utcMs);
+
+      console.log(`[AstrologyService] TZ: ${tz}, offset: ${offsetMin}min → UTC ${utcDate.toISOString()}`);
+
+      return {
+        year: utcDate.getUTCFullYear(),
+        month: utcDate.getUTCMonth() + 1,
+        day: utcDate.getUTCDate(),
+        hour: utcDate.getUTCHours(),
+        minute: utcDate.getUTCMinutes(),
+      };
+    } catch (e) {
+      console.warn('[AstrologyService] Timezone lookup failed, using local time:', e.message);
+    }
+  }
+
   return { year, month, day, hour, minute };
 }
 
@@ -34,7 +85,7 @@ function buildPlanetData(name, position, houseCusps) {
 }
 
 function calculate(birthDate, birthTime, lat, lon) {
-  const { year, month, day, hour, minute } = parseDateTime(birthDate, birthTime);
+  const { year, month, day, hour, minute } = parseDateTime(birthDate, birthTime, lat, lon);
   const jd = julianDay(year, month, day, hour, minute);
 
   const houseCusps = placidusHouses(jd, lat, lon);
@@ -80,19 +131,22 @@ function calculate(birthDate, birthTime, lat, lon) {
 
   const aspects = findAspects(allForAspects);
   const dominantPlanets = getDominantPlanets(allForAspects, aspects);
-  const dominantElement = getDominantElement({
-    sun: buildPlanetData('Слънце', sunPos, houseCusps),
-    moon: buildPlanetData('Луна', moonPos, houseCusps),
-    ...Object.fromEntries(planetNames.map(n => [n, buildPlanetData(n, planetPosition(jd, n), houseCusps)]).filter(([,v]) => v != null)),
-  });
-  const dominantQuality = getDominantQuality({
-    sun: { sign: getZodiacSign(sunPos.longitude) },
+  // Доминантният елемент/качество се изчисляват с тегла.
+  // МС НЕ се включва — той е ос на домовете (cusp), не небесно тяло.
+  // Включването му изкуствено скосява елемента (напр. MC в Везни x3 прави
+  // Въздух да "победи" при Диана, въпреки Слънце+Меркурий+Нептун в Вода).
+  const elementBag = {
+    sun:  { sign: getZodiacSign(sunPos.longitude) },
     moon: { sign: getZodiacSign(moonPos.longitude) },
+    asc:  { sign: getZodiacSign(ascLon) },   // ASC = личен знак → включен
+    // mc: НЕ включваме — house cusp, не планета
     ...Object.fromEntries(planetNames.map(n => {
       const p = planetPosition(jd, n);
       return p ? [n, { sign: getZodiacSign(p.longitude) }] : [n, null];
     }).filter(([,v]) => v != null)),
-  });
+  };
+  const dominantElement = getDominantElement(elementBag);
+  const dominantQuality = getDominantQuality(elementBag);
 
   const retrogrades = planetNames
     .filter(n => planets[planetsBG[n]]?.isRetrograde)
