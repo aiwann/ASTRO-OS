@@ -77,7 +77,7 @@ export default function ZodiacSlider() {
           <div
             ref={trackRef}
             onScroll={updateArrows}
-            className="flex gap-4 overflow-hidden flex-1"
+            className="flex gap-4 overflow-x-clip overflow-y-visible flex-1 py-3"
           >
             {SIGNS.map((sign, i) => (
               <Link
