@@ -31,20 +31,20 @@ export default function Home() {
       {/* Hero */}
       <section className="relative min-h-[calc(100vh-7.25rem)] flex items-center justify-center px-6">
         <div className="max-w-4xl mx-auto text-center animate-fade-in">
-          <p className="text-gold/70 text-xs sm:text-sm tracking-[0.4em] uppercase mb-6">
+          <p className="text-gold/70 text-xs sm:text-sm tracking-[0.4em] uppercase mb-8">
             {t("home.badge")}
           </p>
 
-          <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-light tracking-tight leading-[1.05]">
+          <h1 className="font-serif text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-light tracking-[0.15em] leading-none">
             <span className="gold-gradient-text">{t("home.title")}</span>
           </h1>
 
           <div className="mt-8 mx-auto w-24 h-px bg-gradient-to-r from-transparent via-gold to-transparent" />
 
-          <p className="mt-10 text-lg sm:text-xl text-parchment/80 max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-8 font-serif text-xl sm:text-2xl md:text-3xl font-light text-parchment/90 leading-snug">
             {t("home.subtitle1")}
           </p>
-          <p className="mt-3 text-base sm:text-lg text-parchment/65 max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-4 text-sm sm:text-base text-parchment/55 max-w-xl mx-auto leading-relaxed tracking-wide">
             {t("home.subtitle2")}
           </p>
 
