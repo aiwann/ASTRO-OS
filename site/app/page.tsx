@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useLanguage } from "@/hooks/useLanguage";
 import { TranslationKey } from "@/lib/i18n";
+import OracleWidget from "@/components/OracleWidget";
 
 const SYSTEM_CARDS: { emoji: string; titleKey: TranslationKey; bodyKey: TranslationKey }[] = [
   { emoji: "🪐", titleKey: "home.tech.card1.title", bodyKey: "home.tech.card1.body" },
@@ -56,6 +57,13 @@ export default function Home() {
               </span>
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Oracle widget */}
+      <section className="relative px-6 pb-16 -mt-4">
+        <div className="max-w-2xl mx-auto">
+          <OracleWidget />
         </div>
       </section>
 
