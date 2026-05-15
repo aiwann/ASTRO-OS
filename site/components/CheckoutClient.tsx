@@ -49,6 +49,11 @@ function isValidBirthTime(time: string): boolean {
   return h >= 0 && h <= 23 && mi >= 0 && mi <= 59;
 }
 
+function toISO(ddmmyyyy: string): string {
+  const [d, m, y] = ddmmyyyy.split("/");
+  return `${y}-${m}-${d}`;
+}
+
 type PersonFields = {
   name: string;
   gender: "male" | "female" | "";
@@ -128,13 +133,56 @@ export default function CheckoutClient({ product }: { product: Product }) {
     setPopupSeen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
-    setTimeout(() => {
+
+    try {
+      const customerData: Record<string, string> = {
+        name: person.name,
+        gender: person.gender,
+        birthDate: toISO(person.birthDate),
+        birthTime: person.birthTime || "",
+        birthPlace: person.birthPlace,
+      };
+
+      if (product.apiType === "synastry") {
+        customerData.name2 = partner.name;
+        customerData.gender2 = partner.gender;
+        customerData.birthDate2 = toISO(partner.birthDate);
+        customerData.birthTime2 = partner.birthTime || "";
+        customerData.birthPlace2 = partner.birthPlace;
+      }
+
+      if (bumpQuestion && questionText.trim().length >= MIN_QUESTION_LENGTH) {
+        customerData.question = questionText.trim();
+      }
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/products/order`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productType: product.apiType,
+            customerData,
+            email,
+          }),
+        },
+      );
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Order failed");
+      }
+
       router.push(`/upsell?product=${product.slug}`);
-    }, 1500);
+    } catch (err) {
+      setSubmitting(false);
+      const msg = err instanceof Error ? err.message : "Моля опитай отново.";
+      alert(`Грешка: ${msg}`);
+    }
   };
 
   return (
