@@ -45,21 +45,15 @@ export default function Home() {
             {t("home.subtitle2")}
           </p>
 
-          <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="mt-12 flex justify-center">
             <Link
-              href="/products/personal-profile"
+              href="/analyses"
               className="group px-8 py-4 bg-gold text-dark font-semibold rounded-md hover:bg-gold-light transition-all hover:shadow-[0_0_30px_rgba(212,175,55,0.4)] inline-flex items-center gap-2"
             >
               {t("home.cta.viewAnalyses")}
               <span className="group-hover:translate-x-1 transition-transform">
                 →
               </span>
-            </Link>
-            <Link
-              href="/free-tools/personal-number"
-              className="px-8 py-4 border border-gold/60 text-gold-light font-medium rounded-md hover:bg-gold/10 transition-colors"
-            >
-              {t("home.cta.freeTool")}
             </Link>
           </div>
         </div>
