@@ -47,7 +47,7 @@ export default function Home() {
             {t("home.subtitle2")}
           </p>
 
-          <div className="mt-12 flex justify-center">
+          <div className="mt-12 flex flex-col items-center gap-4">
             <Link
               href="/analyses"
               className="group px-8 py-4 bg-gold text-dark font-semibold rounded-md hover:bg-gold-light transition-all hover:shadow-[0_0_30px_rgba(212,175,55,0.4)] inline-flex items-center gap-2"
@@ -56,6 +56,15 @@ export default function Home() {
               <span className="group-hover:translate-x-1 transition-transform">
                 →
               </span>
+            </Link>
+
+            <Link
+              href="/#zodiac"
+              className="inline-flex items-center gap-2 text-sm text-parchment/50 hover:text-gold transition-colors group"
+            >
+              <span className="text-gold/50 group-hover:text-gold transition-colors">✦</span>
+              или виж безплатния си седмичен хороскоп
+              <span className="group-hover:translate-y-0.5 transition-transform">↓</span>
             </Link>
           </div>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export type LocationResult = {
   displayName: string;
@@ -34,9 +35,14 @@ export default function LocationAutocomplete({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(!!timezone);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  const [mounted, setMounted] = useState(false);
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     function handleOutside(e: MouseEvent) {
@@ -47,6 +53,18 @@ export default function LocationAutocomplete({
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
   }, []);
+
+  function updateDropdownPosition() {
+    if (!inputRef.current) return;
+    const rect = inputRef.current.getBoundingClientRect();
+    setDropdownStyle({
+      position: "fixed",
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+      zIndex: 9999,
+    });
+  }
 
   function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
@@ -69,7 +87,12 @@ export default function LocationAutocomplete({
         if (!res.ok) throw new Error("geocode failed");
         const data = (await res.json()) as LocationResult[];
         setResults(data);
-        setOpen(data.length > 0);
+        if (data.length > 0) {
+          updateDropdownPosition();
+          setOpen(true);
+        } else {
+          setOpen(false);
+        }
       } catch {
         setResults([]);
         setOpen(false);
@@ -86,15 +109,54 @@ export default function LocationAutocomplete({
     onChange(r.displayName, r);
   }
 
+  const dropdown = open && results.length > 0 && mounted ? createPortal(
+    <div
+      style={dropdownStyle}
+      className="rounded-md border border-gold/25 bg-card/95 backdrop-blur-md shadow-2xl shadow-black/50 overflow-hidden animate-fade-in"
+    >
+      {results.map((r, i) => (
+        <button
+          key={`${r.lat}-${r.lon}-${i}`}
+          type="button"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            handleSelect(r);
+          }}
+          className={`w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-gold/10 transition-colors ${
+            i < results.length - 1 ? "border-b border-gold/10" : ""
+          }`}
+        >
+          <span className="text-gold/70 text-xs mt-0.5 shrink-0">◎</span>
+          <div className="min-w-0 flex-1">
+            <div className="text-parchment text-sm truncate">
+              {r.city}
+              {r.country ? `, ${r.country}` : ""}
+            </div>
+            <div className="text-muted text-xs truncate mt-0.5">
+              {r.displayName}
+            </div>
+          </div>
+        </button>
+      ))}
+    </div>,
+    document.body
+  ) : null;
+
   return (
     <div ref={wrapperRef} className="relative">
       <div className="relative">
         <input
+          ref={inputRef}
           id={id}
           type="text"
           value={value}
           onChange={handleInput}
-          onFocus={() => results.length > 0 && setOpen(true)}
+          onFocus={() => {
+            if (results.length > 0) {
+              updateDropdownPosition();
+              setOpen(true);
+            }
+          }}
           placeholder={placeholder}
           className="field pr-9"
           autoComplete="off"
@@ -114,34 +176,7 @@ export default function LocationAutocomplete({
         </span>
       </div>
 
-      {open && results.length > 0 && (
-        <div className="absolute z-30 left-0 right-0 mt-1 rounded-md border border-gold/25 bg-card/95 backdrop-blur-md shadow-2xl shadow-black/50 overflow-hidden animate-fade-in">
-          {results.map((r, i) => (
-            <button
-              key={`${r.lat}-${r.lon}-${i}`}
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleSelect(r);
-              }}
-              className={`w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-gold/10 transition-colors ${
-                i < results.length - 1 ? "border-b border-gold/10" : ""
-              }`}
-            >
-              <span className="text-gold/70 text-xs mt-0.5 shrink-0">◎</span>
-              <div className="min-w-0 flex-1">
-                <div className="text-parchment text-sm truncate">
-                  {r.city}
-                  {r.country ? `, ${r.country}` : ""}
-                </div>
-                <div className="text-muted text-xs truncate mt-0.5">
-                  {r.displayName}
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
+      {dropdown}
 
       {timezone && selected && (
         <p className="mt-2 text-xs text-gold/70">

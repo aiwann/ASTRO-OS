@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRef, useState } from "react";
 
 const SIGNS = [
   { slug: "aries",       name: "Овен",      symbol: "♈", dates: "21 март – 19 април" },
@@ -17,10 +18,32 @@ const SIGNS = [
   { slug: "pisces",      name: "Риби",      symbol: "♓", dates: "19 февруари – 20 март" },
 ];
 
+const ITEM_WIDTH = 120; // px per sign card
+
 export default function ZodiacSlider() {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(true);
+
+  function updateArrows() {
+    const el = trackRef.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 10);
+    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
+  }
+
+  function scroll(dir: "left" | "right") {
+    const el = trackRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === "left" ? -ITEM_WIDTH * 3 : ITEM_WIDTH * 3, behavior: "smooth" });
+    setTimeout(updateArrows, 350);
+  }
+
   return (
     <section className="relative px-6 py-16 sm:py-20">
       <div className="max-w-7xl mx-auto">
+
+        {/* Header */}
         <div className="text-center mb-10">
           <p className="text-xs tracking-[0.3em] uppercase text-gold/60 mb-3">
             Седмичен Хороскоп
@@ -33,18 +56,43 @@ export default function ZodiacSlider() {
           </p>
         </div>
 
-        {/* Scrollable row */}
-        <div className="overflow-x-auto pb-4 scrollbar-hide">
-          <div className="flex gap-3 w-max mx-auto px-2">
-            {SIGNS.map((sign) => (
+        {/* Slider */}
+        <div className="relative flex items-center gap-3">
+
+          {/* Left arrow */}
+          <button
+            onClick={() => scroll("left")}
+            disabled={!canLeft}
+            aria-label="Назад"
+            className={`shrink-0 w-10 h-10 rounded-full border flex items-center justify-center transition-all duration-200 ${
+              canLeft
+                ? "border-gold/40 text-gold hover:bg-gold/10 hover:border-gold/70"
+                : "border-gold/10 text-gold/20 cursor-default"
+            }`}
+          >
+            ‹
+          </button>
+
+          {/* Track */}
+          <div
+            ref={trackRef}
+            onScroll={updateArrows}
+            className="flex gap-4 overflow-hidden flex-1"
+          >
+            {SIGNS.map((sign, i) => (
               <Link
                 key={sign.slug}
                 href={`/horoscope/${sign.slug}`}
-                className="group flex flex-col items-center w-24 sm:w-28 shrink-0"
+                style={{ animationDelay: `${i * 0.15}s` }}
+                className="group flex flex-col items-center w-24 sm:w-28 shrink-0 animate-fade-in"
               >
-                {/* Symbol circle */}
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border border-gold/25 bg-card/50 flex items-center justify-center text-3xl sm:text-4xl text-gold/80 group-hover:border-gold/70 group-hover:text-gold group-hover:bg-gold/10 transition-all duration-300 group-hover:shadow-[0_0_20px_rgba(212,175,55,0.2)]">
-                  {sign.symbol}
+                {/* Icon */}
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20">
+                  {/* Glow ring on hover */}
+                  <div className="absolute inset-0 rounded-full bg-gold/0 group-hover:bg-gold/10 transition-all duration-500 group-hover:shadow-[0_0_24px_rgba(212,175,55,0.3)]" />
+                  <div className="relative w-full h-full rounded-full border border-gold/25 bg-card/50 flex items-center justify-center text-3xl sm:text-4xl text-gold/80 group-hover:border-gold/60 group-hover:text-gold transition-all duration-300 group-hover:-translate-y-2 group-hover:scale-110">
+                    {sign.symbol}
+                  </div>
                 </div>
 
                 {/* Name */}
@@ -53,14 +101,29 @@ export default function ZodiacSlider() {
                 </p>
 
                 {/* Dates */}
-                <p className="mt-0.5 text-[10px] text-parchment/40 text-center leading-tight">
+                <p className="mt-0.5 text-[10px] text-parchment/40 text-center leading-tight px-1">
                   {sign.dates}
                 </p>
               </Link>
             ))}
           </div>
+
+          {/* Right arrow */}
+          <button
+            onClick={() => scroll("right")}
+            disabled={!canRight}
+            aria-label="Напред"
+            className={`shrink-0 w-10 h-10 rounded-full border flex items-center justify-center transition-all duration-200 ${
+              canRight
+                ? "border-gold/40 text-gold hover:bg-gold/10 hover:border-gold/70"
+                : "border-gold/10 text-gold/20 cursor-default"
+            }`}
+          >
+            ›
+          </button>
         </div>
       </div>
+
     </section>
   );
 }

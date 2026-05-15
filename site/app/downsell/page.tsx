@@ -3,29 +3,80 @@ import { formatEUR } from "@/lib/products";
 
 type DownsellOffer = {
   title: string;
+  badge?: string;
   hook: string;
+  description: string;
   oldPrice: number;
   newPrice: number;
+  delivery: string;
+  pages: string;
+  whatYouGet: string[];
+  whoFor: string;
+  buttonLabel: string;
+  featured?: boolean;
 };
 
 const OFFERS: DownsellOffer[] = [
   {
     title: "Базов Личен Код",
-    hook: "Съкратен личен анализ",
+    badge: "✦ ПРЕПОРЪЧАН",
+    hook: "Съкратена версия на личния анализ — основното за теб",
+    description:
+      "Кратък но точен профил на твоята личност, базиран на наталната карта. Идеален ако искаш да опиташ нашите анализи без да правиш голяма инвестиция.",
     oldPrice: 24.99,
     newPrice: 9.99,
+    delivery: "📩 Имейл доставка",
+    pages: "📄 12+ страници PDF",
+    whatYouGet: [
+      "Кратък личностен профил",
+      "Основни силни и слаби страни",
+      "Слънчев и Лунен знак — обяснени",
+      "Възходящ знак и неговото значение",
+      "Препоръка за следваща стъпка",
+    ],
+    whoFor:
+      "За тези, които искат да опитат концепцията преди да поръчат пълен анализ.",
+    buttonLabel: "Вземи за €9.99",
+    featured: true,
   },
   {
     title: "Мини Любовен Анализ",
-    hook: "Основна съвместимост",
+    hook: "Основна съвместимост между двама — компактен формат",
+    description:
+      "Бърз поглед към динамиката между теб и партньора ти. Не толкова дълбоко колкото пълния анализ, но достатъчно, за да видиш дали си струва да отидете по-надълбоко.",
     oldPrice: 24.99,
     newPrice: 9.99,
+    delivery: "📩 Имейл доставка",
+    pages: "📄 10+ страници PDF",
+    whatYouGet: [
+      "Compatibility score",
+      "Топ 3 силни страни на връзката",
+      "Топ 3 потенциални предизвикателства",
+      "Емоционална и комуникационна динамика",
+      "Кратка препоръка",
+    ],
+    whoFor:
+      "За двойки в начален етап или такива, които се чудят дали си подхождат.",
+    buttonLabel: "Вземи за €9.99",
   },
   {
     title: "Енергиен Бърз Профил",
-    hook: "Light версия на енергийния анализ",
+    hook: "Light версия на енергийния анализ — твоят ритъм за месеца",
+    description:
+      "Бърз поглед в твоя енергиен профил и какво те очаква през следващите 30 дни. Идеален да тестваш енергийната ни система преди пълния пакет.",
     oldPrice: 17.49,
     newPrice: 6.99,
+    delivery: "📩 Имейл доставка",
+    pages: "📄 8+ страници PDF",
+    whatYouGet: [
+      "Твой енергиен ритъм за следващите 30 дни",
+      "Силни и слаби периоди",
+      "Препоръка за ключови решения",
+      "Дни за начало / завършване / почивка",
+    ],
+    whoFor:
+      "За тези, които живеят интуитивно и искат малко повече насока в ритъма си.",
+    buttonLabel: "Вземи за €6.99",
   },
 ];
 
@@ -35,19 +86,24 @@ export const metadata = {
 
 export default function DownsellPage() {
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14 animate-fade-in">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14 animate-fade-in">
       <header className="text-center mb-10">
+        <p className="text-xs tracking-[0.3em] uppercase text-gold/70 mb-3">
+          Последна възможност
+        </p>
         <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-light leading-tight">
           <span className="gold-gradient-text">
             Изчакай — имаме нещо специално за теб
           </span>
         </h1>
-        <p className="mt-3 text-parchment/70 text-base sm:text-lg italic font-serif">
-          По-малка инвестиция, реална стойност
+        <p className="mt-4 text-parchment/75 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
+          По-кратки версии на нашите анализи —{" "}
+          <span className="text-gold-light font-semibold">от €6.99</span>. Иде­ал­но
+          за ка­то стар­то­ва точ­ка.
         </p>
       </header>
 
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {OFFERS.map((offer, i) => (
           <DownsellCard key={i} offer={offer} />
         ))}
@@ -58,7 +114,7 @@ export default function DownsellPage() {
           href="/thank-you"
           className="text-sm text-muted hover:text-gold-light transition-colors underline-offset-4 hover:underline"
         >
-          Не, напускам без покупка →
+          Не, благодаря — продължи към завършване →
         </Link>
       </div>
     </div>
@@ -66,29 +122,89 @@ export default function DownsellPage() {
 }
 
 function DownsellCard({ offer }: { offer: DownsellOffer }) {
+  const discount = Math.round(
+    ((offer.oldPrice - offer.newPrice) / offer.oldPrice) * 100,
+  );
+
   return (
-    <article className="rounded-2xl border border-gold/25 bg-card/70 backdrop-blur-sm p-5 sm:p-6 flex flex-col">
-      <h2 className="font-serif text-lg sm:text-xl text-parchment text-center">
+    <article
+      className={`relative rounded-2xl bg-card/80 backdrop-blur-sm p-6 sm:p-7 flex flex-col ${
+        offer.featured
+          ? "border-2 border-gold shadow-[0_0_40px_rgba(212,175,55,0.25)]"
+          : "border border-gold/25"
+      }`}
+    >
+      {offer.badge && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-xs font-bold tracking-widest uppercase text-dark bg-gold rounded-full whitespace-nowrap">
+          {offer.badge}
+        </span>
+      )}
+
+      <h2 className="font-serif text-xl sm:text-2xl text-parchment text-center mt-2">
         {offer.title}
       </h2>
-      <p className="mt-2 text-sm text-parchment/70 text-center min-h-[2.5rem]">
+      <p className="mt-2 text-sm text-gold/80 text-center italic">
         {offer.hook}
       </p>
 
-      <div className="mt-4 flex items-baseline justify-center gap-2.5">
-        <span className="text-red-400/80 line-through text-sm">
+      {/* Price */}
+      <div className="mt-5 flex items-baseline justify-center gap-3">
+        <span className="text-red-400/80 line-through text-base">
           {formatEUR(offer.oldPrice)}
         </span>
-        <span className="font-serif text-2xl sm:text-3xl font-semibold text-emerald-400">
+        <span className="font-serif text-3xl sm:text-4xl font-semibold text-emerald-400">
           {formatEUR(offer.newPrice)}
         </span>
+        <span className="text-xs font-semibold tracking-widest text-red-300 bg-red-900/30 border border-red-500/40 rounded-full px-2 py-0.5">
+          -{discount}%
+        </span>
+      </div>
+
+      {/* Meta */}
+      <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-parchment/60">
+        <span>{offer.pages}</span>
+        <span>{offer.delivery}</span>
+      </div>
+
+      {/* Description */}
+      <p className="mt-5 text-sm text-parchment/80 leading-relaxed">
+        {offer.description}
+      </p>
+
+      {/* What you get */}
+      <div className="mt-5">
+        <p className="text-xs tracking-[0.2em] uppercase text-gold/60 mb-2">
+          Какво ще получиш
+        </p>
+        <ul className="space-y-2 text-sm text-parchment/85">
+          {offer.whatYouGet.map((inc, i) => (
+            <li key={i} className="flex items-start gap-2">
+              <span className="text-gold shrink-0 mt-0.5">✦</span>
+              <span>{inc}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Who it's for */}
+      <div className="mt-5 p-3 rounded-md border border-gold/15 bg-gold/5 flex-1">
+        <p className="text-xs tracking-[0.2em] uppercase text-gold/60 mb-1">
+          За кого
+        </p>
+        <p className="text-xs text-parchment/70 italic leading-relaxed">
+          {offer.whoFor}
+        </p>
       </div>
 
       <Link
         href="/thank-you"
-        className="mt-5 block text-center px-4 py-3 rounded-md font-semibold border border-gold text-gold hover:bg-gold hover:text-dark transition-colors"
+        className={`mt-6 block text-center px-5 py-3.5 rounded-md font-semibold transition-all ${
+          offer.featured
+            ? "bg-gold text-dark hover:bg-gold-light hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]"
+            : "border border-gold text-gold hover:bg-gold hover:text-dark"
+        }`}
       >
-        Вземи за {formatEUR(offer.newPrice)}
+        {offer.buttonLabel}
       </Link>
     </article>
   );

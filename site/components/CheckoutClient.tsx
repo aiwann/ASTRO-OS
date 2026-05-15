@@ -133,7 +133,7 @@ export default function CheckoutClient({ product }: { product: Product }) {
     if (!canSubmit) return;
     setSubmitting(true);
     setTimeout(() => {
-      router.push(`/thank-you?product=${product.slug}`);
+      router.push(`/upsell?product=${product.slug}`);
     }, 1500);
   };
 
