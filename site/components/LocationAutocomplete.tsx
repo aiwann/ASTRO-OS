@@ -21,8 +21,6 @@ type Props = {
   required?: boolean;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
-
 export default function LocationAutocomplete({
   id,
   value,
@@ -56,7 +54,7 @@ export default function LocationAutocomplete({
     onChange(val);
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!API_BASE || val.trim().length < 2) {
+    if (val.trim().length < 2) {
       setResults([]);
       setOpen(false);
       return;
@@ -66,7 +64,7 @@ export default function LocationAutocomplete({
       setLoading(true);
       try {
         const res = await fetch(
-          `${API_BASE}/api/geocode/search?q=${encodeURIComponent(val)}`,
+          `/api/geocode/search?q=${encodeURIComponent(val)}`,
         );
         if (!res.ok) throw new Error("geocode failed");
         const data = (await res.json()) as LocationResult[];
