@@ -2,7 +2,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Anthropic from "@anthropic-ai/sdk";
 
-export const revalidate = 86400; // regenerate once per day
+// Never pre-render at build time — Anthropic API key is unavailable during SSG.
+// Pages are rendered on-demand at request time (SSR).
+export const dynamic = "force-dynamic";
 
 const SIGNS: Record<string, { name: string; symbol: string; dates: string; element: string; ruler: string }> = {
   aries:       { name: "Овен",      symbol: "♈", dates: "21 март – 19 април",          element: "Огън",  ruler: "Марс" },
