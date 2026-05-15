@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
-import { LANGUAGES } from "@/lib/i18n";
 
 export default function Navigation() {
-  const { t, language, switchLanguage } = useLanguage();
+  const { t } = useLanguage();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -53,26 +52,6 @@ export default function Navigation() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Language switcher */}
-            <div className="hidden sm:flex items-center gap-1 border border-gold/25 rounded-md p-0.5">
-              {LANGUAGES.map((lng) => (
-                <button
-                  key={lng.code}
-                  type="button"
-                  onClick={() => switchLanguage(lng.code)}
-                  aria-label={`Switch to ${lng.label}`}
-                  className={`px-2 py-1 text-xs rounded transition-colors ${
-                    language === lng.code
-                      ? "bg-gold text-dark font-semibold"
-                      : "text-parchment/70 hover:text-gold-light"
-                  }`}
-                >
-                  <span className="mr-1">{lng.flag}</span>
-                  {lng.label}
-                </button>
-              ))}
-            </div>
-
             <Link
               href="/products/personal-profile"
               className="hidden sm:inline-flex items-center gap-1 px-5 py-2.5 text-sm font-medium border border-gold text-gold rounded-md hover:bg-gold hover:text-dark transition-colors"
@@ -129,24 +108,6 @@ export default function Navigation() {
           </div>
 
           <div className="px-6 py-8 space-y-3">
-            {/* Language switcher (mobile) */}
-            <div className="flex items-center gap-2 border border-gold/25 rounded-md p-1 w-fit mx-auto mb-8">
-              {LANGUAGES.map((lng) => (
-                <button
-                  key={lng.code}
-                  type="button"
-                  onClick={() => switchLanguage(lng.code)}
-                  className={`px-3 py-1.5 text-sm rounded transition-colors ${
-                    language === lng.code
-                      ? "bg-gold text-dark font-semibold"
-                      : "text-parchment/80 hover:text-gold-light"
-                  }`}
-                >
-                  <span className="mr-1">{lng.flag}</span>
-                  {lng.label}
-                </button>
-              ))}
-            </div>
 
             <Link
               href="/quick-analyses"
