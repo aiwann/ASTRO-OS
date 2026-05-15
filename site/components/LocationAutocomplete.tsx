@@ -106,7 +106,8 @@ export default function LocationAutocomplete({
     setSelected(true);
     setOpen(false);
     setResults([]);
-    onChange(r.displayName, r);
+    const label = r.country ? `${r.city}, ${r.country}` : r.city;
+    onChange(label, r);
   }
 
   const dropdown = open && results.length > 0 && mounted ? createPortal(
