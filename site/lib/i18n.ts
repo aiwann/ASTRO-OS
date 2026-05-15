@@ -67,6 +67,9 @@ const dictionaries = {
     "home.tech.card7.title": "Ангелски Числа",
     "home.tech.card7.body":
       "Синхронизация на нумерологичните модели с езотеричната традиция за по-дълбоко лично послание.",
+    "home.tech.card8.title": "AI Персонален Синтез",
+    "home.tech.card8.body":
+      "Всички слоеве се сливат в един кохерентен разказ — уникален за теб, написан от AI с дълбочина на часова консултация.",
     "home.tech.result.prefix": "Резултатът:",
     "home.tech.result.highlight": "анализ с дълбочина на часова консултация",
     "home.tech.result.suffix": "— готов за минути.",
@@ -207,6 +210,9 @@ const dictionaries = {
     "home.tech.card7.title": "Angel Numbers",
     "home.tech.card7.body":
       "Synchronization of numerological patterns with the esoteric tradition for a deeper personal message.",
+    "home.tech.card8.title": "AI Personal Synthesis",
+    "home.tech.card8.body":
+      "All layers merge into one coherent narrative — unique to you, written by AI with the depth of an hour-long consultation.",
     "home.tech.result.prefix": "The result:",
     "home.tech.result.highlight": "analysis with the depth of an hour-long consultation",
     "home.tech.result.suffix": "— ready in minutes.",

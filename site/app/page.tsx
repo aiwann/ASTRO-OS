@@ -14,6 +14,7 @@ const SYSTEM_CARDS: { emoji: string; titleKey: TranslationKey; bodyKey: Translat
   { emoji: "♾", titleKey: "home.tech.card5.title", bodyKey: "home.tech.card5.body" },
   { emoji: "🌊", titleKey: "home.tech.card6.title", bodyKey: "home.tech.card6.body" },
   { emoji: "👁", titleKey: "home.tech.card7.title", bodyKey: "home.tech.card7.body" },
+  { emoji: "✨", titleKey: "home.tech.card8.title", bodyKey: "home.tech.card8.body" },
 ];
 
 const WHY_CARDS: { emoji: string; titleKey: TranslationKey; bodyKey: TranslationKey }[] = [
