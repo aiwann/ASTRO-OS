@@ -8,7 +8,7 @@ export const metadata = {
 export default function ThankYouPage({
   searchParams,
 }: {
-  searchParams: { product?: string };
+  searchParams: { product?: string; session_id?: string };
 }) {
   const product = searchParams.product
     ? getProduct(searchParams.product)

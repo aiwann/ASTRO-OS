@@ -160,7 +160,7 @@ export default function CheckoutClient({ product }: { product: Product }) {
       }
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/products/order`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/payments/create-checkout-session`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -168,16 +168,20 @@ export default function CheckoutClient({ product }: { product: Product }) {
             productType: product.apiType,
             customerData,
             email,
+            priceEur: total,
           }),
         },
       );
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Order failed");
+        throw new Error(err.error || err.message || "Checkout failed");
       }
 
-      router.push(`/upsell?product=${product.slug}`);
+      const { url } = await res.json();
+      if (!url) throw new Error("Не е върнат Stripe URL");
+
+      window.location.href = url;
     } catch (err) {
       setSubmitting(false);
       const msg = err instanceof Error ? err.message : "Моля опитай отново.";
