@@ -238,7 +238,7 @@ class ExportService {
 
     // Top ornament
     doc.font(fonts.regular).fontSize(12).fillColor(C.gold).fillOpacity(0.5);
-    doc.text('✦  ☽  ✦', 0, 90, { align: 'center', width: PAGE_W });
+    doc.text('★  ☽  ★', 0, 90, { align: 'center', width: PAGE_W });
 
     // Main title
     doc.font(fonts.regular).fontSize(46).fillColor(C.gold).fillOpacity(1);
@@ -410,7 +410,7 @@ class ExportService {
 
     // Top ornament
     doc.font(fonts.regular).fontSize(9).fillColor(C.gold).fillOpacity(0.35);
-    doc.text('✦  ✦  ✦', 0, MARGIN + 6, { align: 'center', width: PAGE_W, characterSpacing: 14 });
+    doc.text('★  ★  ★', 0, MARGIN + 6, { align: 'center', width: PAGE_W, characterSpacing: 14 });
 
     // Section title
     doc.font(fonts.regular).fontSize(22).fillColor(C.gold).fillOpacity(1);
@@ -504,7 +504,7 @@ class ExportService {
 
     // Top ornament
     doc.font(fonts.regular).fontSize(20).fillColor(C.gold).fillOpacity(0.6);
-    doc.text('✦', 0, 72, { align: 'center', width: PAGE_W });
+    doc.text('★', 0, 72, { align: 'center', width: PAGE_W });
 
     // Title
     doc.font(fonts.regular).fontSize(26).fillColor(C.gold).fillOpacity(1);
@@ -714,7 +714,7 @@ class ExportService {
 
     // Горен орнамент — разширен с допълнителни символи
     doc.font(fonts.regular).fontSize(13).fillColor(C.gold).fillOpacity(0.55);
-    doc.text('✦  ✴  ☽  ✴  ✦', 0, 84, { align: 'center', width: PAGE_W, characterSpacing: 4 });
+    doc.text('★  ◆  ☽  ◆  ★', 0, 84, { align: 'center', width: PAGE_W, characterSpacing: 4 });
 
     // Бранд линия отгоре
     doc.font(fonts.regular).fontSize(9).fillColor(C.goldDim).fillOpacity(0.7);
@@ -749,7 +749,7 @@ class ExportService {
 
     // Декоративен трисимволен ред под зодиаците
     doc.font(fonts.regular).fontSize(10).fillColor(C.goldDark).fillOpacity(0.45);
-    doc.text('✴  ✦  ✴', 0, 416, { align: 'center', width: PAGE_W, characterSpacing: 12 });
+    doc.text('◆  ★  ◆', 0, 416, { align: 'center', width: PAGE_W, characterSpacing: 12 });
 
     ornamentDivider(doc, 458, C.gold, 0.3);
 
@@ -766,7 +766,7 @@ class ExportService {
 
     // Долен орнамент
     doc.font(fonts.regular).fontSize(11).fillColor(C.gold).fillOpacity(0.4);
-    doc.text('✦  ☽  ✦', 0, PAGE_H - 78, { align: 'center', width: PAGE_W, characterSpacing: 6 });
+    doc.text('★  ☽  ★', 0, PAGE_H - 78, { align: 'center', width: PAGE_W, characterSpacing: 6 });
 
     // Долен подпис
     doc.font(fonts.regular).fontSize(7.5).fillColor(C.textFaint).fillOpacity(0.45);
@@ -801,7 +801,7 @@ class ExportService {
 
     // Топ орнамент
     doc.font(fonts.regular).fontSize(22).fillColor(C.gold).fillOpacity(0.6);
-    doc.text('✦', 0, 72, { align: 'center', width: PAGE_W });
+    doc.text('★', 0, 72, { align: 'center', width: PAGE_W });
 
     // Подзаглавие
     doc.font(fonts.regular).fontSize(10).fillColor(C.goldDim).fillOpacity(0.7);
@@ -834,7 +834,7 @@ class ExportService {
 
     // Декоративни символи
     doc.font(fonts.regular).fontSize(12).fillColor(C.gold).fillOpacity(0.4);
-    doc.text('✦  ☽  ✴  ☽  ✦', 0, PAGE_H * 0.62, { align: 'center', width: PAGE_W, characterSpacing: 6 });
+    doc.text('★  ☽  ◆  ☽  ★', 0, PAGE_H * 0.62, { align: 'center', width: PAGE_W, characterSpacing: 6 });
 
     // Нумерология (ако е налична)
     const nums = [];
