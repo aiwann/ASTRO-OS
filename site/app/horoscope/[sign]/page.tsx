@@ -2,9 +2,11 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Anthropic from "@anthropic-ai/sdk";
 
-// Never pre-render at build time — Anthropic API key is unavailable during SSG.
-// Pages are rendered on-demand at request time (SSR).
-export const dynamic = "force-dynamic";
+// ISR: generate on first request, cache for 7 days.
+// Horoscopes are weekly — no need to regenerate per visit.
+// Reduces Anthropic API calls from N (per visit) to 12 (one per sign per week).
+export const revalidate = 604800;
+export const dynamicParams = true;
 
 const SIGNS: Record<string, { name: string; symbol: string; dates: string; element: string; ruler: string }> = {
   aries:       { name: "Овен",      symbol: "♈", dates: "21 март – 19 април",          element: "Огън",  ruler: "Марс" },
@@ -22,10 +24,6 @@ const SIGNS: Record<string, { name: string; symbol: string; dates: string; eleme
 };
 
 const SIGN_SLUGS = Object.keys(SIGNS);
-
-export function generateStaticParams() {
-  return SIGN_SLUGS.map((sign) => ({ sign }));
-}
 
 function getWeekRange(): { label: string; monday: Date; sunday: Date } {
   const now = new Date();
