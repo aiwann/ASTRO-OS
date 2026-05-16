@@ -7,6 +7,8 @@ const reportService = require('../services/reportService');
 const ExportService = require('../services/exportService');
 const { generateText } = require('../services/anthropicService');
 const { SECTION_PROMPTS } = require('../prompts/sectionPrompts');
+const { sendAnalysisEmail } = require('../services/emailService');
+const { cleanupFile } = require('../utils/tempFileManager');
 
 const SECTION_ORDER = [
   'personality',
@@ -111,38 +113,27 @@ async function processOrder({ productType, customerData, email }) {
 
   // 5) Генерирай PDF
   const report = await reportService.getReport(reportId);
-  const pdfBuffer = await ExportService.generatePDF(
+  const pdfResult = await ExportService.generatePDF(
     report,
     sections,
     reportData.natal,
     reportData.numerology
   );
 
-  // 6) Изпрати на имейла
-  // TODO: интегрирай реален email service (Resend / SendGrid / SMTP)
-  await sendReportEmail(email, pdfBuffer, customerData.name, productType);
-
-  console.log(`[OrderService] Готово — report #${reportId} изпратен на ${email}`);
-}
-
-/**
- * Stub — заменѝ с реален email provider (Resend / SendGrid / Nodemailer).
- * Засега само логва, че имейлът би бил изпратен.
- */
-async function sendReportEmail(email, pdfBuffer, name, productType) {
-  console.log(
-    `[Email STUB] Към: ${email} | Продукт: ${productType} | PDF: ${pdfBuffer?.length || 0} bytes`
-  );
-  // Пример с Resend:
-  // const { Resend } = require('resend');
-  // const resend = new Resend(process.env.RESEND_API_KEY);
-  // await resend.emails.send({
-  //   from: 'Астро ОС <noreply@astro-os.com>',
-  //   to: email,
-  //   subject: 'Твоят анализ е готов ✦',
-  //   html: `<p>Здравей ${name},</p><p>Прикачен е твоят персонален анализ.</p>`,
-  //   attachments: [{ filename: 'astro-os-analysis.pdf', content: pdfBuffer }],
-  // });
+  // 6) Изпрати на имейла с реален Resend email service
+  try {
+    await sendAnalysisEmail({
+      to: email,
+      customerName: customerData.name,
+      productTitle: productType,
+      pdfPath: pdfResult.filepath || pdfResult,
+    });
+    console.log(`[OrderService] Готово — report #${reportId} изпратен на ${email}`);
+  } finally {
+    // Изчисти временния PDF файл
+    const filepath = pdfResult.filepath || pdfResult;
+    if (filepath && typeof filepath === 'string') cleanupFile(filepath);
+  }
 }
 
 module.exports = router;
