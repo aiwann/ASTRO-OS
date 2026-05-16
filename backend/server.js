@@ -17,18 +17,25 @@ app.use(cors({
     'http://localhost:3000',
     /\.netlify\.app$/,
     /\.railway\.app$/,
+    /astro-os\.net$/,
   ]
 }));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, _res, buf) => {
+    req.rawBody = buf;
+  },
+}));
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/api/settings', require('./routes/settings'));
-app.use('/api/reports',  require('./routes/reports'));
-app.use('/api/ai',       require('./routes/ai'));
-app.use('/api/export',   require('./routes/export'));
-app.use('/api/geocode',  require('./routes/geocode'));
-app.use('/api/synastry', require('./routes/synastry'));
-app.use('/api/products', require('./routes/products'));
+app.use('/api/settings',  require('./routes/settings'));
+app.use('/api/reports',   require('./routes/reports'));
+app.use('/api/ai',        require('./routes/ai'));
+app.use('/api/export',    require('./routes/export'));
+app.use('/api/geocode',   require('./routes/geocode'));
+app.use('/api/synastry',  require('./routes/synastry'));
+app.use('/api/products',  require('./routes/products'));
+app.use('/api/payments',  require('./routes/payments'));
 
 // Validate the astrology engine on boot. /api/health exposes the result so
 // the UI can surface failures. reportService also calls assertEngineValid()
