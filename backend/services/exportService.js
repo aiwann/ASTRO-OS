@@ -568,7 +568,7 @@ class ExportService {
   // ===== PRODUCT PDF =====
 
   static PRODUCT_TITLES = {
-    'personal-profile':  'ЛИЧЕН АСТРО КОД',
+    'personal-profile':  'ЛИЧЕН АНАЛИЗ',
     'synastry':          'ЛЮБОВНА СЪВМЕСТИМОСТ',
     'yearly-analysis':   `ГОДИШЕН АНАЛИЗ ${new Date().getFullYear()}`,
     'archetype-profile': 'АРХЕТИП ПРОФИЛ',

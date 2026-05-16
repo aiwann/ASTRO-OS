@@ -4,9 +4,14 @@ const fs   = require('fs');
 const path = require('path');
 const os   = require('os');
 
-// Candidate Cyrillic-capable TTF fonts per platform
+// Bundled fonts (preferred — always available)
+const BUNDLED = path.join(__dirname, '..', 'assets', 'fonts');
+
+// Candidate Cyrillic + Unicode-symbol-capable TTF fonts per platform
 const FONT_CANDIDATES = {
   regular: [
+    // Bundled (cross-platform, supports zodiac symbols ♈-♓ and ★◆☽☀)
+    path.join(BUNDLED, 'DejaVuSans.ttf'),
     // macOS
     '/Library/Fonts/Arial Unicode.ttf',
     '/System/Library/Fonts/Supplemental/Arial.ttf',
@@ -19,6 +24,7 @@ const FONT_CANDIDATES = {
     '/usr/share/fonts/truetype/freefont/FreeSerif.ttf',
   ],
   bold: [
+    path.join(BUNDLED, 'DejaVuSans-Bold.ttf'),
     // macOS
     '/System/Library/Fonts/Supplemental/Arial Bold.ttf',
     '/Library/Fonts/Arial Bold.ttf',
@@ -29,6 +35,7 @@ const FONT_CANDIDATES = {
     '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
   ],
   italic: [
+    path.join(BUNDLED, 'DejaVuSans-Oblique.ttf'),
     // macOS
     '/System/Library/Fonts/Supplemental/Arial Italic.ttf',
     '/Library/Fonts/Arial Italic.ttf',
