@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getProduct } from "@/lib/products";
 
 export const metadata = {
-  title: "Благодарим ти — Астро Код",
+  title: "Благодарим ти — Астро ОС",
 };
 
 export default function ThankYouPage({

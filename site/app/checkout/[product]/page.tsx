@@ -14,7 +14,7 @@ export function generateMetadata({
   const product = getProduct(params.product);
   if (!product) return { title: "Checkout" };
   return {
-    title: `Checkout — ${product.title} | Астро Код`,
+    title: `Checkout — ${product.title} | Астро ОС`,
     description: `Поръчай ${product.title} — ${product.duration}`,
   };
 }

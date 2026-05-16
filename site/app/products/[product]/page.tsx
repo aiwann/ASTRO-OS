@@ -20,7 +20,7 @@ export function generateMetadata({
   const product = getProduct(params.product);
   if (!product) return { title: "Продукт не е намерен" };
   return {
-    title: `${product.title} — Астро Код`,
+    title: `${product.title} — Астро ОС`,
     description: product.hook,
   };
 }

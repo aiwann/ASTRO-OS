@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Политика за поверителност — Астро Код",
+  title: "Политика за поверителност — Астро ОС",
 };
 
 const COMPANY = {

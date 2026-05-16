@@ -17,8 +17,8 @@ const TITLES: Record<ToolSlug, string> = {
 export function generateMetadata({ params }: { params: { tool: string } }) {
   const slug = params.tool as ToolSlug;
   if (!TOOL_SLUGS.includes(slug))
-    return { title: "Безплатен инструмент — Астро Код" };
-  return { title: `${TITLES[slug]} — Безплатен инструмент | Астро Код` };
+    return { title: "Безплатен инструмент — Астро ОС" };
+  return { title: `${TITLES[slug]} — Безплатен инструмент | Астро ОС` };
 }
 
 export default function FreeToolPage({

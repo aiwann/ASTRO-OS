@@ -68,13 +68,55 @@ router.post('/create-checkout-session', async (req, res) => {
         email,
         customerData: customerDataStr,
       },
-      success_url: `https://astro-os.net/thank-you?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `https://astro-os.net/upsell?session_id={CHECKOUT_SESSION_ID}&product=${productType}&email=${encodeURIComponent(email)}`,
       cancel_url: `https://astro-os.net/deep-analyses`,
     });
 
     res.json({ url: session.url });
   } catch (err) {
     console.error('[Payments] create-checkout-session error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/payments/create-upsell-session
+router.post('/create-upsell-session', async (req, res) => {
+  const { originalSessionId, productType, productLabel, priceEur } = req.body;
+
+  if (!originalSessionId || !productType || !productLabel || !priceEur) {
+    return res.status(400).json({ success: false, error: 'Липсват задължителни полета.' });
+  }
+
+  try {
+    const original = await getStripe().checkout.sessions.retrieve(originalSessionId);
+    const { email, customerData } = original.metadata || {};
+
+    if (!email || !customerData) {
+      return res.status(400).json({ success: false, error: 'Не може да се намери оригиналната поръчка.' });
+    }
+
+    const session = await getStripe().checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card'],
+      customer_email: email,
+      line_items: [{
+        price_data: {
+          currency: 'eur',
+          product_data: {
+            name: productLabel,
+            description: 'Допълнителен AI астрологичен анализ — Астро ОС',
+          },
+          unit_amount: Math.round(priceEur * 100),
+        },
+        quantity: 1,
+      }],
+      metadata: { productType, email, customerData },
+      success_url: `https://astro-os.net/thank-you`,
+      cancel_url: `https://astro-os.net/thank-you`,
+    });
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('[Payments] create-upsell-session error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
