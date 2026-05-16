@@ -5,7 +5,11 @@ const router = express.Router();
 const Stripe = require('stripe');
 const orderService = require('../services/orderService');
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY) throw new Error('STRIPE_SECRET_KEY не е конфигуриран');
+  return new Stripe(process.env.STRIPE_SECRET_KEY);
+}
+
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 
 const PRODUCT_LABELS = {
@@ -42,7 +46,7 @@ router.post('/create-checkout-session', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Данните за клиента са твърде дълги.' });
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
       customer_email: email,
@@ -87,7 +91,7 @@ router.post('/webhook', async (req, res) => {
 
   let event;
   try {
-    event = stripe.webhooks.constructEvent(req.rawBody, sig, WEBHOOK_SECRET);
+    event = getStripe().webhooks.constructEvent(req.rawBody, sig, WEBHOOK_SECRET);
   } catch (err) {
     console.error('[Payments] Webhook signature error:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
