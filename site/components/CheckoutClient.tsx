@@ -160,6 +160,9 @@ export default function CheckoutClient({ product }: { product: Product }) {
         customerData.question = questionText.trim();
       }
 
+      const addOns: string[] = [];
+      if (bumpPartnerIdeal) addOns.push("ideal-partner");
+
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/payments/create-checkout-session`,
         {
@@ -170,6 +173,7 @@ export default function CheckoutClient({ product }: { product: Product }) {
             customerData,
             email,
             priceEur: total,
+            addOns,
           }),
         },
       );

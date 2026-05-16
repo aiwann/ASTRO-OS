@@ -26,7 +26,7 @@ const PRODUCT_LABELS = {
 
 // POST /api/payments/create-checkout-session
 router.post('/create-checkout-session', async (req, res) => {
-  const { productType, customerData, email, priceEur } = req.body;
+  const { productType, customerData, email, priceEur, addOns = [] } = req.body;
 
   if (!productType || !customerData || !email || !priceEur) {
     return res.status(400).json({
@@ -67,6 +67,7 @@ router.post('/create-checkout-session', async (req, res) => {
         productType,
         email,
         customerData: customerDataStr,
+        addOns: addOns.join(','),
       },
       success_url: `https://astro-os.net/upsell?session_id={CHECKOUT_SESSION_ID}&product=${productType}&email=${encodeURIComponent(email)}`,
       cancel_url: `https://astro-os.net/deep-analyses`,
@@ -141,7 +142,7 @@ router.post('/webhook', async (req, res) => {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    const { productType, email, customerData: customerDataStr } = session.metadata || {};
+    const { productType, email, customerData: customerDataStr, addOns: addOnsStr } = session.metadata || {};
 
     if (!productType || !email || !customerDataStr) {
       console.error('[Payments] Webhook: missing metadata in session', session.id);
@@ -156,9 +157,10 @@ router.post('/webhook', async (req, res) => {
       return res.json({ received: true });
     }
 
-    console.log(`[Payments] Webhook: processing order ${productType} for ${email}`);
+    const addOns = addOnsStr ? addOnsStr.split(',').filter(Boolean) : [];
+    console.log(`[Payments] Webhook: processing order ${productType}${addOns.length ? ' + ' + addOns.join(', ') : ''} for ${email}`);
 
-    orderService.processOrder({ productType, customerData, email }).catch((err) => {
+    orderService.processOrder({ productType, customerData, email, addOns }).catch((err) => {
       console.error('[Payments] Webhook processOrder error:', err.message);
     });
   }

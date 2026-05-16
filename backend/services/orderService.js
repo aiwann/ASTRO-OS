@@ -61,7 +61,7 @@ function validateCommon({ productType, customerData, email }) {
  * Главният flow след успешно плащане:
  * астрология → AI анализ → PDF → email → cleanup.
  */
-async function processOrder({ productType, customerData, email }) {
+async function processOrder({ productType, customerData, email, addOns = [] }) {
   validateCommon({ productType, customerData, email });
 
   console.log(`${LOG_PREFIX} Order: ${productType} for ${email}`);
@@ -82,35 +82,72 @@ async function processOrder({ productType, customerData, email }) {
     });
 
     console.log(`${LOG_PREFIX} Order completed: ${productType} → ${email}`);
-
-    return { success: true, message: 'Анализът е изпратен на имейла' };
   } finally {
-    // Винаги чистим — както при успех, така и при грешка след генериране на PDF.
     if (pdfResult?.filepath) {
       cleanupFile(pdfResult.filepath);
     }
   }
+
+  // Process add-on products (e.g. ideal-partner bump)
+  for (const addOn of addOns) {
+    if (!PRODUCT_KEY_MAP[addOn]) {
+      console.warn(`${LOG_PREFIX} Unknown addOn: ${addOn}, skipping`);
+      continue;
+    }
+    let addOnPdf = null;
+    try {
+      console.log(`${LOG_PREFIX} Processing addOn: ${addOn} for ${email}`);
+      addOnPdf = await runStandardFlow(addOn, customerData);
+      const addOnTitle = ExportService.PRODUCT_TITLES[addOn] || addOn;
+      await sendAnalysisEmail({
+        to: email,
+        customerName: customerData.name,
+        productTitle: addOnTitle,
+        pdfPath: addOnPdf.filepath,
+      });
+      console.log(`${LOG_PREFIX} AddOn completed: ${addOn} → ${email}`);
+    } catch (err) {
+      console.error(`${LOG_PREFIX} AddOn ${addOn} failed:`, err.message);
+    } finally {
+      if (addOnPdf?.filepath) cleanupFile(addOnPdf.filepath);
+    }
+  }
+
+  return { success: true, message: 'Анализът е изпратен на имейла' };
 }
 
 // ─── Standard flow (всички продукти без синастрия) ──────────────────────────
 
 async function runStandardFlow(productType, customerData) {
-  const { name, gender = '', birthDate, birthTime = '', birthPlace } = customerData;
+  const { name, gender = '', birthDate, birthTime = '', birthPlace, question = '' } = customerData;
 
   const geo = await geocodeLocation(birthPlace);
   const natal = astrologyService.calculate(birthDate, birthTime, geo.lat, geo.lon);
   const numerology = numerologyService.analyze(name, birthDate);
 
   const data = {
-    user: { name, gender, birthDate, birthTime, birthPlace },
+    user: { name, gender, birthDate, birthTime, birthPlace, question },
     geo, natal, numerology,
   };
 
   const promptKey = PRODUCT_KEY_MAP[productType];
   const { system, prompt } = PRODUCT_PROMPTS[promptKey](data);
 
-  console.log(`${LOG_PREFIX} Generating AI analysis (${productType})...`);
-  const analysisText = await generateText(system, prompt, { maxTokens: MAX_TOKENS[productType] });
+  // Append personal question section if customer purchased the question bump
+  const finalPrompt = question
+    ? `${prompt}
+
+ДОПЪЛНИТЕЛНО — ЛИЧЕН ВЪПРОС ОТ КЛИЕНТА:
+"${question}"
+
+Преди финалното послание добави отделен раздел "ОТГОВОР НА ТВОЯ ВЪПРОС" (2 параграфа):
+— Отговори директно, конкретно, базирайки се изключително на наталната карта и нумерологията по-горе
+— Без общи приказки — астрологично обосновано, честно
+— Свържи отговора с темите от основния анализ`
+    : prompt;
+
+  console.log(`${LOG_PREFIX} Generating AI analysis (${productType}${question ? ' + question' : ''})...`);
+  const analysisText = await generateText(system, finalPrompt, { maxTokens: MAX_TOKENS[productType] });
 
   console.log(`${LOG_PREFIX} Generating PDF (${productType})...`);
   return ExportService.generateProductPDF(productType, customerData, analysisText, natal, numerology);
@@ -129,9 +166,17 @@ async function runSynastryFlow(customerData) {
     name2,        birthDate2,           birthTime2,           birthPlace2,
   });
 
-  const synastryPrompt = buildSynastryPrompt(result);
+  let synastryPrompt = buildSynastryPrompt(result);
+  if (customerData.question) {
+    synastryPrompt += `
 
-  console.log(`${LOG_PREFIX} Generating synastry AI analysis...`);
+ДОПЪЛНИТЕЛНО — ЛИЧЕН ВЪПРОС ОТ КЛИЕНТА:
+"${customerData.question}"
+
+Преди финалното послание добави раздел "ОТГОВОР НА ТВОЯ ВЪПРОС" (2 параграфа) — конкретно, базирайки се на синастричния анализ по-горе.`;
+  }
+
+  console.log(`${LOG_PREFIX} Generating synastry AI analysis${customerData.question ? ' + question' : ''}...`);
   const analysisText = await generateText(MASTER_SYSTEM_PROMPT, synastryPrompt, {
     maxTokens: MAX_TOKENS.synastry,
   });

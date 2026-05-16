@@ -25,9 +25,10 @@ function buildBase(data) {
   const birthYear = parseInt((user.birthDate || '').split('-')[0]);
   const age = birthYear ? today.getFullYear() - birthYear : null;
   const todayStr = today.toISOString().slice(0, 10);
+  const questionLine = user.question ? `\nЛичен въпрос от клиента: "${user.question}"` : '';
   return `Днешна дата: ${todayStr}
 Доклад за: ${user.name} (${user.gender === 'male' ? 'Мъж' : user.gender === 'female' ? 'Жена' : 'Небинарен'}${age ? `, ${age} години` : ''})
-Роден/а: ${user.birthDate}${user.birthTime ? ', ' + user.birthTime : ''}, ${user.birthPlace}`;
+Роден/а: ${user.birthDate}${user.birthTime ? ', ' + user.birthTime : ''}, ${user.birthPlace}${questionLine}`;
 }
 
 function buildFullNatalContext(data) {
