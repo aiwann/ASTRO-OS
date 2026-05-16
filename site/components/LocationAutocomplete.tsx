@@ -20,6 +20,7 @@ type Props = {
   onChange: (value: string, location?: LocationResult) => void;
   placeholder?: string;
   required?: boolean;
+  showError?: boolean;
 };
 
 export default function LocationAutocomplete({
@@ -30,11 +31,13 @@ export default function LocationAutocomplete({
   onChange,
   placeholder = "София, България",
   required,
+  showError,
 }: Props) {
   const [results, setResults] = useState<LocationResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(!!timezone);
+  const [touched, setTouched] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const [mounted, setMounted] = useState(false);
 
@@ -69,6 +72,7 @@ export default function LocationAutocomplete({
   function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
     setSelected(false);
+    setTouched(true);
     onChange(val);
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -158,8 +162,9 @@ export default function LocationAutocomplete({
               setOpen(true);
             }
           }}
+          onBlur={() => setTouched(true)}
           placeholder={placeholder}
-          className="field pr-9"
+          className={`field pr-9 ${(showError || (touched && value.trim() && !selected)) ? "border-red-500/60" : ""}`}
           autoComplete="off"
           required={required}
         />
@@ -183,6 +188,12 @@ export default function LocationAutocomplete({
         <p className="mt-2 text-xs text-gold/70">
           {timezoneLabel}{" "}
           <span className="text-parchment/85">{timezone}</span>
+        </p>
+      )}
+
+      {(showError || (touched && value.trim() && !selected)) && (
+        <p className="mt-2 text-sm text-red-400">
+          * Изберете валидна локация от падащото меню
         </p>
       )}
     </div>

@@ -106,11 +106,14 @@ export default function CheckoutClient({ product }: { product: Product }) {
     return sum;
   }, [product.newPrice, bumpQuestion, bumpPartnerIdeal]);
 
+  const personLocationValid = !!person.birthLat && !!person.birthLon;
+  const partnerLocationValid =
+    !product.twoPersons || (!!partner.birthLat && !!partner.birthLon);
   const personValid =
-    isValidBirthDate(person.birthDate) && isValidBirthTime(person.birthTime);
+    isValidBirthDate(person.birthDate) && isValidBirthTime(person.birthTime) && personLocationValid;
   const partnerValid =
     !product.twoPersons ||
-    (isValidBirthDate(partner.birthDate) && isValidBirthTime(partner.birthTime));
+    (isValidBirthDate(partner.birthDate) && isValidBirthTime(partner.birthTime) && partnerLocationValid);
   const questionValid =
     !bumpQuestion || questionText.trim().length >= MIN_QUESTION_LENGTH;
   const canSubmit =
@@ -651,6 +654,7 @@ function PersonSection({
             }
             placeholder={t("checkout.birthPlace.placeholder")}
             required
+            showError={!!(data.birthPlace.trim() && !data.birthLat)}
           />
         </div>
       </div>
