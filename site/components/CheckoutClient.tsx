@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Product, formatBGN, formatEUR } from "@/lib/products";
 import { TranslationKey } from "@/lib/i18n";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -74,7 +73,6 @@ const emptyPerson: PersonFields = {
 };
 
 export default function CheckoutClient({ product }: { product: Product }) {
-  const router = useRouter();
   const { t } = useLanguage();
 
   const [popupOpen, setPopupOpen] = useState(false);
