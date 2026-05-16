@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useLanguage } from "@/hooks/useLanguage";
 import { TranslationKey } from "@/lib/i18n";
 import OracleWidget from "@/components/OracleWidget";
-import ZodiacSlider from "@/components/ZodiacSlider";
 
 const SYSTEM_CARDS: { emoji: string; titleKey: TranslationKey; bodyKey: TranslationKey }[] = [
   { emoji: "🪐", titleKey: "home.tech.card1.title", bodyKey: "home.tech.card1.body" },
@@ -77,11 +76,6 @@ export default function Home() {
           <OracleWidget />
         </div>
       </section>
-
-      {/* Zodiac slider */}
-      <div id="zodiac">
-        <ZodiacSlider />
-      </div>
 
       {/* How it works */}
       <section className="relative px-6 py-20 sm:py-28">
