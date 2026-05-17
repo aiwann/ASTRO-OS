@@ -1,91 +1,44 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState, Suspense } from "react";
-import { formatEUR } from "@/lib/products";
-
-type DownsellOffer = {
-  productType: string;
-  title: string;
-  badge?: string;
-  hook: string;
-  description: string;
-  oldPrice: number;
-  newPrice: number;
-  pages: string;
-  whatYouGet: string[];
-  whoFor: string;
-  buttonLabel: string;
-  featured?: boolean;
-};
-
-const OFFERS: DownsellOffer[] = [
-  {
-    productType: "personal-profile",
-    title: "Базов Личен Код",
-    badge: "★ ПРЕПОРЪЧАН",
-    hook: "Съкратена версия на личния анализ — основното за теб",
-    description:
-      "Кратък но точен профил на твоята личност, базиран на наталната карта. Идеален ако искаш да опиташ нашите анализи без да правиш голяма инвестиция.",
-    oldPrice: 24.99,
-    newPrice: 9.99,
-    pages: "12+ страници PDF",
-    whatYouGet: [
-      "Кратък личностен профил",
-      "Основни силни и слаби страни",
-      "Слънчев и Лунен знак — обяснени",
-      "Възходящ знак и неговото значение",
-      "Препоръка за следваща стъпка",
-    ],
-    whoFor: "За тези, които искат да опитат концепцията преди да поръчат пълен анализ.",
-    buttonLabel: "Вземи за €9.99",
-    featured: true,
-  },
-  {
-    productType: "hidden-potential",
-    title: "Скрит Потенциал",
-    hook: "Таланти и дарби, за които не подозираш",
-    description:
-      "Анализ на скрития ти потенциал — какви таланти и дарби носиш по рождение и как да ги активираш в живота си.",
-    oldPrice: 24.99,
-    newPrice: 9.99,
-    pages: "15+ страници PDF",
-    whatYouGet: [
-      "Скрити таланти по натална карта",
-      "Дарби и призвание",
-      "Как да активираш потенциала си",
-      "Практически стъпки за реализация",
-    ],
-    whoFor: "За тези, които усещат, че имат повече да дадат, но не знаят откъде да започнат.",
-    buttonLabel: "Вземи за €9.99",
-  },
-  {
-    productType: "energy-profile",
-    title: "Енергиен Бърз Профил",
-    hook: "Light версия на енергийния анализ — твоят ритъм за месеца",
-    description:
-      "Бърз поглед в твоя енергиен профил и какво те очаква през следващите 30 дни. Идеален да тестваш енергийната ни система преди пълния пакет.",
-    oldPrice: 17.49,
-    newPrice: 6.99,
-    pages: "8+ страници PDF",
-    whatYouGet: [
-      "Твой енергиен ритъм за следващите 30 дни",
-      "Силни и слаби периоди",
-      "Препоръка за ключови решения",
-      "Дни за начало / завършване / почивка",
-    ],
-    whoFor: "За тези, които живеят интуитивно и искат малко повече насока в ритъма си.",
-    buttonLabel: "Вземи за €6.99",
-  },
-];
+import { useMemo, useState, Suspense } from "react";
+import {
+  DOWNSELLS,
+  computeOrderTotal,
+  formatEUR,
+  formatBGN,
+  type CatalogItem,
+} from "@/lib/catalog";
 
 function DownsellContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id") || "";
-  const [loading, setLoading] = useState<string | null>(null);
 
-  const handleAccept = async (offer: DownsellOffer) => {
-    setLoading(offer.productType);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(false);
+
+  const toggle = (id: string, on: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const selectedItems = useMemo<CatalogItem[]>(
+    () => DOWNSELLS.filter((d) => selected.has(String(d.id))),
+    [selected],
+  );
+
+  const totals = useMemo(
+    () => computeOrderTotal(Array.from(selected)),
+    [selected],
+  );
+
+  const buyDownsell = async () => {
+    if (selectedItems.length === 0) return;
+    setLoading(true);
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/payments/create-upsell-session`,
@@ -94,48 +47,101 @@ function DownsellContent() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             originalSessionId: sessionId,
-            productType: offer.productType,
-            productLabel: offer.title,
-            priceEur: offer.newPrice,
+            itemIds: Array.from(selected),
           }),
-        }
+        },
       );
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
       } else {
         alert("Грешка: " + (data.error || "Моля опитайте отново."));
-        setLoading(null);
+        setLoading(false);
       }
     } catch {
       alert("Грешка при свързване. Моля опитайте отново.");
-      setLoading(null);
+      setLoading(false);
     }
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14 animate-fade-in">
       <header className="text-center mb-10">
-        <p className="text-xs tracking-[0.3em] uppercase text-gold/70 mb-3">Последна възможност</p>
+        <p className="text-xs tracking-[0.3em] uppercase text-gold/70 mb-3">
+          Последна възможност
+        </p>
         <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-light leading-tight">
-          <span className="gold-gradient-text">Изчакай — имаме нещо специално за теб</span>
+          <span className="gold-gradient-text">
+            Изчакай — имаме нещо специално за теб
+          </span>
         </h1>
         <p className="mt-4 text-parchment/75 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
-          По-кратки версии на нашите анализи —{" "}
-          <span className="text-gold-light font-semibold">от €6.99</span>. Идеално като стартова точка.
+          Кратки essence версии на нашите анализи —{" "}
+          <span className="text-gold-light font-semibold">от €5.99</span>.
+          Идеално като стартова точка.
         </p>
       </header>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {OFFERS.map((offer) => (
+        {DOWNSELLS.map((d, idx) => (
           <DownsellCard
-            key={offer.productType}
-            offer={offer}
-            loading={loading === offer.productType}
-            onAccept={() => handleAccept(offer)}
+            key={d.id}
+            item={d}
+            featured={idx === 0}
+            checked={selected.has(String(d.id))}
+            onChange={(v) => toggle(String(d.id), v)}
           />
         ))}
       </section>
+
+      {/* Receipt + Buy */}
+      {selectedItems.length > 0 && (
+        <section className="mt-10 max-w-2xl mx-auto rounded-2xl border border-gold/30 bg-card/85 backdrop-blur-sm p-6 sm:p-8">
+          <p className="text-xs tracking-[0.3em] uppercase text-muted mb-4">
+            Твоят избор
+          </p>
+          <ul className="space-y-2 text-sm">
+            {selectedItems.map((i) => (
+              <li
+                key={i.id}
+                className="flex justify-between items-baseline gap-2"
+              >
+                <span className="text-parchment/85">
+                  {i.title}
+                  <span className="text-parchment/45 ml-2 text-xs">
+                    · {i.pages} стр
+                  </span>
+                </span>
+                <span className="text-emerald-400 font-semibold whitespace-nowrap">
+                  {formatEUR(i.priceEur)}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-5 pt-5 border-t border-gold/30 flex justify-between items-baseline">
+            <span className="font-serif text-lg text-parchment">Общо</span>
+            <div className="text-right">
+              <div className="font-serif text-2xl font-semibold gold-gradient-text">
+                {formatEUR(totals.total)}
+              </div>
+              <div className="text-xs text-parchment/50 mt-0.5">
+                ≈ {formatBGN(totals.total)}
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={buyDownsell}
+            disabled={loading}
+            className="mt-6 w-full py-3.5 rounded-md font-semibold bg-gold text-dark hover:bg-gold-light hover:shadow-[0_0_30px_rgba(212,175,55,0.4)] transition-all disabled:opacity-60"
+          >
+            {loading
+              ? "Зареждане..."
+              : `Купи за ${formatEUR(totals.total)} →`}
+          </button>
+        </section>
+      )}
 
       <div className="mt-12 text-center">
         <a
@@ -149,64 +155,76 @@ function DownsellContent() {
   );
 }
 
-function DownsellCard({ offer, loading, onAccept }: { offer: DownsellOffer; loading: boolean; onAccept: () => void }) {
-  const discount = Math.round(((offer.oldPrice - offer.newPrice) / offer.oldPrice) * 100);
-
+function DownsellCard({
+  item,
+  checked,
+  onChange,
+  featured,
+}: {
+  item: CatalogItem;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  featured?: boolean;
+}) {
   return (
-    <article
-      className={`relative rounded-2xl bg-card/80 backdrop-blur-sm p-6 sm:p-7 flex flex-col ${
-        offer.featured ? "border-2 border-gold shadow-[0_0_40px_rgba(212,175,55,0.25)]" : "border border-gold/25"
+    <label
+      className={`relative block rounded-2xl bg-card/80 backdrop-blur-sm p-6 sm:p-7 cursor-pointer transition-all ${
+        checked
+          ? "border-2 border-gold shadow-[0_0_30px_rgba(212,175,55,0.3)]"
+          : featured
+            ? "border-2 border-gold/60 hover:border-gold"
+            : "border border-gold/25 hover:border-gold/50"
       }`}
     >
-      {offer.badge && (
+      {featured && (
         <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-xs font-bold tracking-widest uppercase text-dark bg-gold rounded-full whitespace-nowrap">
-          {offer.badge}
+          ★ ПРЕПОРЪЧАН
         </span>
       )}
-      <h2 className="font-serif text-xl sm:text-2xl text-parchment text-center mt-2">{offer.title}</h2>
-      <p className="mt-2 text-sm text-gold/80 text-center italic">{offer.hook}</p>
+
+      <div className="flex items-start gap-3 mt-2">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="mt-1.5 w-5 h-5 accent-gold shrink-0"
+        />
+        <div className="flex-1 min-w-0">
+          <h2 className="font-serif text-xl sm:text-2xl text-parchment">
+            {item.title}
+          </h2>
+          <p className="mt-1 text-sm text-gold/80 italic">{item.subtitle}</p>
+        </div>
+      </div>
+
       <div className="mt-5 flex items-baseline justify-center gap-3">
-        <span className="text-red-400/80 line-through text-base">{formatEUR(offer.oldPrice)}</span>
-        <span className="font-serif text-3xl sm:text-4xl font-semibold text-emerald-400">{formatEUR(offer.newPrice)}</span>
-        <span className="text-xs font-semibold tracking-widest text-red-300 bg-red-900/30 border border-red-500/40 rounded-full px-2 py-0.5">-{discount}%</span>
+        <span className="font-serif text-3xl sm:text-4xl font-semibold text-emerald-400">
+          {formatEUR(item.priceEur)}
+        </span>
       </div>
+
       <div className="mt-4 flex justify-center text-xs text-parchment/60">
-        <span>📄 {offer.pages} · 📩 Имейл доставка</span>
+        <span>
+          📄 {item.pages} страници · 📩 Имейл доставка
+        </span>
       </div>
-      <p className="mt-5 text-sm text-parchment/80 leading-relaxed">{offer.description}</p>
-      <div className="mt-5">
-        <p className="text-xs tracking-[0.2em] uppercase text-gold/60 mb-2">Какво ще получиш</p>
-        <ul className="space-y-2 text-sm text-parchment/85">
-          {offer.whatYouGet.map((inc, i) => (
-            <li key={i} className="flex items-start gap-2">
-              <span className="text-gold shrink-0 mt-0.5">★</span>
-              <span>{inc}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="mt-5 p-3 rounded-md border border-gold/15 bg-gold/5 flex-1">
-        <p className="text-xs tracking-[0.2em] uppercase text-gold/60 mb-1">За кого</p>
-        <p className="text-xs text-parchment/70 italic leading-relaxed">{offer.whoFor}</p>
-      </div>
-      <button
-        onClick={onAccept}
-        disabled={loading}
-        className={`mt-6 block w-full text-center px-5 py-3.5 rounded-md font-semibold transition-all disabled:opacity-60 ${
-          offer.featured
-            ? "bg-gold text-dark hover:bg-gold-light hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]"
-            : "border border-gold text-gold hover:bg-gold hover:text-dark"
-        }`}
-      >
-        {loading ? "Зареждане..." : offer.buttonLabel}
-      </button>
-    </article>
+
+      <p className="mt-5 text-sm text-parchment/80 leading-relaxed text-center">
+        {item.description}
+      </p>
+    </label>
   );
 }
 
 export default function DownsellPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gold">Зареждане...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center text-gold">
+          Зареждане...
+        </div>
+      }
+    >
       <DownsellContent />
     </Suspense>
   );
