@@ -10,6 +10,7 @@ const { geocodeLocation }   = require('../utils/geocoding');
 const { cleanupFile }       = require('../utils/tempFileManager');
 const { generateWithMinWords } = require('../utils/wordCount');
 const { resolveItemPrompt, expandOrderItems } = require('./promptResolver');
+const { enqueue: enqueueFailed } = require('../utils/failedOrderQueue');
 const { MASTER_SYSTEM_PROMPT } = require('../prompts/systemPrompt');
 const { getById, getBySlug }   = require('../catalog');
 
@@ -137,12 +138,26 @@ async function processOrder(input) {
       ? titles[0]
       : `Твоят анализ (${sections.length} раздела)`;
 
-    await sendAnalysisEmail({
-      to: email,
-      customerName: customerData.name,
-      productTitle: emailTitle,
-      pdfPath: pdfResult.filepath,
-    });
+    try {
+      await sendAnalysisEmail({
+        to: email,
+        customerName: customerData.name,
+        productTitle: emailTitle,
+        pdfPath: pdfResult.filepath,
+      });
+    } catch (emailErr) {
+      // Email failed — PDF is about to be cleaned up. Save it to the DLQ so
+      // we can resend manually without regenerating. Logs tell us where to look.
+      console.error(`${LOG_PREFIX} Email FAILED for ${email}: ${emailErr.message}`);
+      enqueueFailed({
+        email,
+        customerName: customerData.name,
+        productTitle: emailTitle,
+        pdfPath: pdfResult.filepath,
+        error: emailErr.message,
+      });
+      throw emailErr; // still propagate — order is not "complete"
+    }
 
     console.log(`${LOG_PREFIX} Order completed → ${email} (${sections.length} sections, ${failures.length} failed)`);
     if (failures.length) {
