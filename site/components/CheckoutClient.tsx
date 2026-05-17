@@ -23,11 +23,13 @@ function formatBirthDate(input: string): string {
 }
 
 function isValidBirthDate(date: string): boolean {
-  const m = date.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (!m) return false;
-  const d = +m[1];
-  const mo = +m[2];
-  const y = +m[3];
+  // Accepts YYYY-MM-DD (from type="date") or legacy DD/MM/YYYY
+  const iso = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const dmy = date.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  let y: number, mo: number, d: number;
+  if (iso) { y = +iso[1]; mo = +iso[2]; d = +iso[3]; }
+  else if (dmy) { d = +dmy[1]; mo = +dmy[2]; y = +dmy[3]; }
+  else return false;
   if (mo < 1 || mo > 12 || d < 1 || d > 31 || y < 1900 || y > 2100) return false;
   const dt = new Date(y, mo - 1, d);
   return dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d;
@@ -48,8 +50,11 @@ function isValidBirthTime(time: string): boolean {
   return h >= 0 && h <= 23 && mi >= 0 && mi <= 59;
 }
 
-function toISO(ddmmyyyy: string): string {
-  const [d, m, y] = ddmmyyyy.split("/");
+function toISO(date: string): string {
+  // Already ISO from type="date"
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+  // Legacy DD/MM/YYYY
+  const [d, m, y] = date.split("/");
   return `${y}-${m}-${d}`;
 }
 
@@ -622,15 +627,12 @@ function PersonSection({
           </FieldLabel>
           <input
             id={`${idPrefix}-bdate`}
-            type="text"
-            inputMode="numeric"
+            type="date"
             value={data.birthDate}
-            onChange={(e) =>
-              update("birthDate", formatBirthDate(e.target.value))
-            }
+            onChange={(e) => update("birthDate", e.target.value)}
             onBlur={() => setDateTouched(true)}
-            placeholder={t("checkout.birthDate.placeholder")}
-            maxLength={10}
+            min="1900-01-01"
+            max={new Date().toISOString().slice(0, 10)}
             className={`field ${dateError ? "border-red-500/60" : ""}`}
             required
           />
@@ -647,15 +649,10 @@ function PersonSection({
           </FieldLabel>
           <input
             id={`${idPrefix}-btime`}
-            type="text"
-            inputMode="numeric"
+            type="time"
             value={data.birthTime}
-            onChange={(e) =>
-              update("birthTime", formatBirthTime(e.target.value))
-            }
+            onChange={(e) => update("birthTime", e.target.value)}
             onBlur={() => setTimeTouched(true)}
-            placeholder={t("checkout.birthTime.placeholder")}
-            maxLength={5}
             className={`field ${timeError ? "border-red-500/60" : ""}`}
           />
           {timeError && (
