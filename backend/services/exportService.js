@@ -178,7 +178,15 @@ class ExportService {
         _pageNum++;
         doc.rect(0, 0, PAGE_W, PAGE_H).fill(C.bg);
         doc.fillColor(C.textDim).fillOpacity(1);
-        if (_pageNum > 1) pageFooter(doc, _pageNum, fonts);
+        if (_pageNum > 1) {
+          // Footer draws at PAGE_H-26 which is below the bottom margin zone.
+          // Temporarily zero the margin so PDFKit doesn't auto-add another page
+          // while drawing the footer (which would cause infinite pageAdded recursion).
+          const savedBottom = doc.page.margins.bottom;
+          doc.page.margins.bottom = 0;
+          pageFooter(doc, _pageNum, fonts);
+          doc.page.margins.bottom = savedBottom;
+        }
       });
 
       try {
@@ -652,7 +660,15 @@ class ExportService {
         _pageNum++;
         doc.rect(0, 0, PAGE_W, PAGE_H).fill(C.bg);
         doc.fillColor(C.textDim).fillOpacity(1);
-        if (_pageNum > 1) pageFooter(doc, _pageNum, fonts);
+        if (_pageNum > 1) {
+          // Footer draws at PAGE_H-26 which is below the bottom margin zone.
+          // Temporarily zero the margin so PDFKit doesn't auto-add another page
+          // while drawing the footer (which would cause infinite pageAdded recursion).
+          const savedBottom = doc.page.margins.bottom;
+          doc.page.margins.bottom = 0;
+          pageFooter(doc, _pageNum, fonts);
+          doc.page.margins.bottom = savedBottom;
+        }
       });
 
       try {
@@ -947,7 +963,15 @@ class ExportService {
         _pageNum++;
         doc.rect(0, 0, PAGE_W, PAGE_H).fill(C.bg);
         doc.fillColor(C.textDim).fillOpacity(1);
-        if (_pageNum > 1) pageFooter(doc, _pageNum, fonts);
+        if (_pageNum > 1) {
+          // Footer draws at PAGE_H-26 which is below the bottom margin zone.
+          // Temporarily zero the margin so PDFKit doesn't auto-add another page
+          // while drawing the footer (which would cause infinite pageAdded recursion).
+          const savedBottom = doc.page.margins.bottom;
+          doc.page.margins.bottom = 0;
+          pageFooter(doc, _pageNum, fonts);
+          doc.page.margins.bottom = savedBottom;
+        }
       });
 
       try {
