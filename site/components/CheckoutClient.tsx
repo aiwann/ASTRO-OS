@@ -77,6 +77,7 @@ export default function CheckoutClient({ product }: { product: Product }) {
 
   const [popupOpen, setPopupOpen] = useState(false);
   const [popupSeen, setPopupSeen] = useState(false);
+  const [formTouched, setFormTouched] = useState(false);
 
   const [person, setPerson] = useState<PersonFields>(emptyPerson);
   const [partner, setPartner] = useState<PersonFields>(emptyPerson);
@@ -100,11 +101,16 @@ export default function CheckoutClient({ product }: { product: Product }) {
     });
   };
 
+  // Show bump popup only when user hasn't started filling the form yet.
+  // Waiting 3s gives them time to read the page; dismissing on first form
+  // interaction prevents it from covering fields they're actively editing.
   useEffect(() => {
-    if (popupSeen) return;
-    const timer = setTimeout(() => setPopupOpen(true), 500);
+    if (popupSeen || formTouched) return;
+    const timer = setTimeout(() => {
+      if (!formTouched) setPopupOpen(true);
+    }, 3000);
     return () => clearTimeout(timer);
-  }, [popupSeen]);
+  }, [popupSeen, formTouched]);
 
   const emailValid = EMAIL_RE.test(email);
   const showEmailError = emailTouched && email.length > 0 && !emailValid;
@@ -245,14 +251,14 @@ export default function CheckoutClient({ product }: { product: Product }) {
                 <PersonSection
                   title={t("checkout.yourData")}
                   data={person}
-                  onChange={setPerson}
+                  onChange={(v) => { setFormTouched(true); setPerson(v); }}
                   idPrefix="me"
                   t={t}
                 />
                 <PersonSection
                   title={t("checkout.partnerData")}
                   data={partner}
-                  onChange={setPartner}
+                  onChange={(v) => { setFormTouched(true); setPartner(v); }}
                   idPrefix="partner"
                   t={t}
                 />
@@ -275,7 +281,7 @@ export default function CheckoutClient({ product }: { product: Product }) {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setFormTouched(true); setEmail(e.target.value); }}
                 onBlur={() => setEmailTouched(true)}
                 placeholder={t("checkout.email.placeholder")}
                 className={`field ${
