@@ -15,12 +15,6 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_QUESTION_LENGTH = 10;
 const QUESTION_BUMP_ID = "B1";
 
-function formatBirthDate(input: string): string {
-  const digits = input.replace(/\D/g, "").slice(0, 8);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-}
 
 function isValidBirthDate(date: string): boolean {
   // Accepts YYYY-MM-DD (from type="date") or legacy DD/MM/YYYY
@@ -35,11 +29,6 @@ function isValidBirthDate(date: string): boolean {
   return dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d;
 }
 
-function formatBirthTime(input: string): string {
-  const digits = input.replace(/\D/g, "").slice(0, 4);
-  if (digits.length <= 2) return digits;
-  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
-}
 
 function isValidBirthTime(time: string): boolean {
   if (!time) return true;
