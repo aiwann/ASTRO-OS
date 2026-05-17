@@ -4,203 +4,250 @@ const astrologyService  = require('./astrologyService');
 const numerologyService = require('./numerologyService');
 const synastryService   = require('./synastryService');
 const { generateText }  = require('./anthropicService');
-const ExportService     = require('./exportService');
+const { mergeSectionsToPdf } = require('./pdfMerger');
 const { sendAnalysisEmail } = require('./emailService');
 const { geocodeLocation }   = require('../utils/geocoding');
 const { cleanupFile }       = require('../utils/tempFileManager');
-const { PRODUCT_PROMPTS }   = require('../prompts/productPrompts');
+const { generateWithMinWords } = require('../utils/wordCount');
+const { resolveItemPrompt, expandOrderItems } = require('./promptResolver');
 const { MASTER_SYSTEM_PROMPT } = require('../prompts/systemPrompt');
+const { getById, getBySlug }   = require('../catalog');
 
 const LOG_PREFIX = '[OrderService]';
 
-// productType (kebab-case) → PRODUCT_PROMPTS key (camelCase)
-const PRODUCT_KEY_MAP = {
-  'personal-profile':  'personalProfile',
-  'yearly-analysis':   'yearlyAnalysis',
-  'archetype-profile': 'archetypeProfile',
-  'life-map':          'lifeMap',
-  'hidden-potential':  'hiddenPotential',
-  'energy-profile':    'energyProfile',
-  'ideal-partner':     'idealPartner',
-  'full-life-code':    'fullLifeCode',
-};
+// Hard cap on per-call max_tokens. Claude's practical extended-output limit.
+const PER_CALL_TOKEN_CAP = 16000;
 
-const MAX_TOKENS = {
-  'personal-profile':  4000,
-  'yearly-analysis':   4000,
-  'archetype-profile': 4000,
-  'life-map':          4000,
-  'hidden-potential':  4000,
-  'energy-profile':    4000,
-  'ideal-partner':     2000,
-  'full-life-code':    16000,
-  'synastry':          6000,
-};
+// ─── BACKWARD-COMPAT SHIM ─────────────────────────────────────────────────────
+// Legacy callers used { productType, customerData, email, addOns }.
+// New callers use   { itemIds, customerData, email }.
+// This function normalizes both into a single itemIds[] array.
+function normalizeOrder(input) {
+  if (Array.isArray(input.itemIds) && input.itemIds.length > 0) {
+    return { itemIds: input.itemIds, customerData: input.customerData, email: input.email };
+  }
+  // Legacy: build itemIds from productType (slug) + addOns (slugs)
+  const ids = [];
+  if (input.productType) {
+    const main = getBySlug(input.productType);
+    if (main) ids.push(main.id);
+    else ids.push(input.productType); // pass-through, will fail validation downstream with clear msg
+  }
+  for (const addOn of input.addOns || []) {
+    const item = getBySlug(addOn);
+    ids.push(item ? item.id : addOn);
+  }
+  return { itemIds: ids, customerData: input.customerData, email: input.email };
+}
 
-function validateCommon({ productType, customerData, email }) {
-  if (!productType) throw new Error('Липсва productType');
-  if (!customerData) throw new Error('Липсва customerData');
-  if (!email) throw new Error('Липсва email');
+function validateOrder({ itemIds, customerData, email }) {
+  if (!Array.isArray(itemIds) || itemIds.length === 0) {
+    throw new Error('processOrder: itemIds is empty');
+  }
+  if (!customerData) throw new Error('processOrder: customerData missing');
+  if (!email) throw new Error('processOrder: email missing');
 
   const { name, birthDate, birthPlace } = customerData;
   if (!name || !birthDate || !birthPlace) {
-    throw new Error('Липсват задължителни полета на customerData: name, birthDate, birthPlace');
+    throw new Error('processOrder: customerData missing name/birthDate/birthPlace');
   }
 
-  if (productType === 'synastry') {
+  // Synastry requires partner data
+  if (itemIds.some((id) => getById(id)?.requiresPartner)) {
     const { name2, birthDate2, birthPlace2 } = customerData;
     if (!name2 || !birthDate2 || !birthPlace2) {
-      throw new Error('За синастрия са задължителни: name2, birthDate2, birthPlace2');
+      throw new Error('processOrder: synastry item present but partner data (name2/birthDate2/birthPlace2) missing');
     }
-  } else if (!PRODUCT_KEY_MAP[productType]) {
-    throw new Error(`Неизвестен productType: ${productType}`);
+  }
+
+  for (const id of itemIds) {
+    const item = getById(id);
+    if (!item) throw new Error(`processOrder: unknown catalog id "${id}"`);
   }
 }
 
+// ─── MAIN ENTRY POINT ─────────────────────────────────────────────────────────
 /**
- * Главният flow след успешно плащане:
- * астрология → AI анализ → PDF → email → cleanup.
+ * Process a successful payment.
+ * Generates each item in parallel, merges into one PDF, sends one email.
+ *
+ * @param {object} input
+ *   - itemIds: Array<number|string> (preferred) — catalog ids
+ *   - productType + addOns                       (legacy, auto-normalized)
+ *   - customerData: { name, birthDate, birthTime, birthPlace, gender, question?, name2?, ... }
+ *   - email: string
  */
-async function processOrder({ productType, customerData, email, addOns = [] }) {
-  validateCommon({ productType, customerData, email });
+async function processOrder(input) {
+  const { itemIds: rawIds, customerData, email } = normalizeOrder(input);
+  validateOrder({ itemIds: rawIds, customerData, email });
 
-  console.log(`${LOG_PREFIX} Order: ${productType} for ${email}`);
+  // Expand upsell bundles (U3 → main + chosen bumps)
+  const itemIds = expandOrderItems(rawIds, customerData);
 
+  console.log(`${LOG_PREFIX} Order for ${email} — ${itemIds.length} item(s): ${itemIds.join(', ')}`);
+
+  // Build shared astrology context (geo + natal + numerology) ONCE
+  const shared = await buildSharedContext(customerData);
+
+  // Generate each item in parallel
+  const generated = await Promise.allSettled(
+    itemIds.map((id) => generateItemContent(id, customerData, shared))
+  );
+
+  // Collect successes — preserve order
+  const sections = [];
+  const failures = [];
+  generated.forEach((result, idx) => {
+    const id = itemIds[idx];
+    if (result.status === 'fulfilled' && result.value?.content) {
+      sections.push({ itemId: id, content: result.value.content });
+    } else {
+      const err = result.reason || new Error('unknown error');
+      console.error(`${LOG_PREFIX} Item ${id} FAILED:`, err.message);
+      failures.push({ itemId: id, error: err.message });
+    }
+  });
+
+  if (sections.length === 0) {
+    throw new Error(`processOrder: all ${itemIds.length} items failed to generate`);
+  }
+
+  // Pick the right "report owner" data — for synastry-only orders use combined name
+  const isSynastryOnly = itemIds.length === 1 && getById(itemIds[0])?.slug === 'synastry';
+  const userDataForPdf = isSynastryOnly ? buildSynastryUserData(customerData) : customerData;
+  const natalForPdf    = shared.natal;
+  const numerologyForPdf = shared.numerology;
+
+  // Merge into ONE PDF
   let pdfResult = null;
   try {
-    pdfResult = productType === 'synastry'
-      ? await runSynastryFlow(customerData)
-      : await runStandardFlow(productType, customerData);
+    pdfResult = await mergeSectionsToPdf({
+      items: sections,
+      userData: userDataForPdf,
+      natal: natalForPdf,
+      numerology: numerologyForPdf,
+    });
 
-    const productTitle = ExportService.PRODUCT_TITLES[productType] || 'Астрологичен Анализ';
+    const titles = sections
+      .map(({ itemId }) => getById(itemId)?.pdfTitle || getById(itemId)?.title)
+      .filter(Boolean);
+    const emailTitle = sections.length === 1
+      ? titles[0]
+      : `Твоят анализ (${sections.length} раздела)`;
 
     await sendAnalysisEmail({
       to: email,
       customerName: customerData.name,
-      productTitle,
+      productTitle: emailTitle,
       pdfPath: pdfResult.filepath,
     });
 
-    console.log(`${LOG_PREFIX} Order completed: ${productType} → ${email}`);
+    console.log(`${LOG_PREFIX} Order completed → ${email} (${sections.length} sections, ${failures.length} failed)`);
+    if (failures.length) {
+      console.warn(`${LOG_PREFIX} Failures will need manual retry: ${failures.map((f) => f.itemId).join(', ')}`);
+    }
+
+    return { success: true, sections: sections.length, failures };
   } finally {
-    if (pdfResult?.filepath) {
-      cleanupFile(pdfResult.filepath);
-    }
+    if (pdfResult?.filepath) cleanupFile(pdfResult.filepath);
   }
-
-  // Process add-on products (e.g. ideal-partner bump)
-  for (const addOn of addOns) {
-    if (!PRODUCT_KEY_MAP[addOn]) {
-      console.warn(`${LOG_PREFIX} Unknown addOn: ${addOn}, skipping`);
-      continue;
-    }
-    let addOnPdf = null;
-    try {
-      console.log(`${LOG_PREFIX} Processing addOn: ${addOn} for ${email}`);
-      addOnPdf = await runStandardFlow(addOn, customerData);
-      const addOnTitle = ExportService.PRODUCT_TITLES[addOn] || addOn;
-      await sendAnalysisEmail({
-        to: email,
-        customerName: customerData.name,
-        productTitle: addOnTitle,
-        pdfPath: addOnPdf.filepath,
-      });
-      console.log(`${LOG_PREFIX} AddOn completed: ${addOn} → ${email}`);
-    } catch (err) {
-      console.error(`${LOG_PREFIX} AddOn ${addOn} failed:`, err.message);
-    } finally {
-      if (addOnPdf?.filepath) cleanupFile(addOnPdf.filepath);
-    }
-  }
-
-  return { success: true, message: 'Анализът е изпратен на имейла' };
 }
 
-// ─── Standard flow (всички продукти без синастрия) ──────────────────────────
-
-async function runStandardFlow(productType, customerData) {
-  const { name, gender = '', birthDate, birthTime = '', birthPlace, question = '' } = customerData;
-
+// ─── SHARED CONTEXT (computed once per order) ─────────────────────────────────
+async function buildSharedContext(customerData) {
+  const { name, birthDate, birthTime = '', birthPlace } = customerData;
   const geo = await geocodeLocation(birthPlace);
   const natal = astrologyService.calculate(birthDate, birthTime, geo.lat, geo.lon);
   const numerology = numerologyService.analyze(name, birthDate);
-
-  const data = {
-    user: { name, gender, birthDate, birthTime, birthPlace, question },
-    geo, natal, numerology,
-  };
-
-  const promptKey = PRODUCT_KEY_MAP[productType];
-  const { system, prompt } = PRODUCT_PROMPTS[promptKey](data);
-
-  // Append personal question section if customer purchased the question bump
-  const finalPrompt = question
-    ? `${prompt}
-
-ДОПЪЛНИТЕЛНО — ЛИЧЕН ВЪПРОС ОТ КЛИЕНТА:
-"${question}"
-
-Преди финалното послание добави отделен раздел "ОТГОВОР НА ТВОЯ ВЪПРОС" (2 параграфа):
-— Отговори директно, конкретно, базирайки се изключително на наталната карта и нумерологията по-горе
-— Без общи приказки — астрологично обосновано, честно
-— Свържи отговора с темите от основния анализ`
-    : prompt;
-
-  console.log(`${LOG_PREFIX} Generating AI analysis (${productType}${question ? ' + question' : ''})...`);
-  const analysisText = await generateText(system, finalPrompt, { maxTokens: MAX_TOKENS[productType] });
-
-  console.log(`${LOG_PREFIX} Generating PDF (${productType})...`);
-  return ExportService.generateProductPDF(productType, customerData, analysisText, natal, numerology);
+  return { geo, natal, numerology };
 }
 
-// ─── Synastry flow ──────────────────────────────────────────────────────────
+function buildDataForPrompts(customerData, shared) {
+  return {
+    user: {
+      name: customerData.name,
+      gender: customerData.gender || '',
+      birthDate: customerData.birthDate,
+      birthTime: customerData.birthTime || '',
+      birthPlace: customerData.birthPlace,
+      question: customerData.question || '',
+    },
+    geo: shared.geo,
+    natal: shared.natal,
+    numerology: shared.numerology,
+  };
+}
 
-async function runSynastryFlow(customerData) {
-  const { name, gender = '', birthDate, birthTime = '', birthPlace,
+// ─── PER-ITEM GENERATION ──────────────────────────────────────────────────────
+async function generateItemContent(itemId, customerData, shared) {
+  const item = getById(itemId);
+  if (!item) throw new Error(`generateItemContent: unknown id ${itemId}`);
+
+  // Synastry has a dedicated flow (uses synastryService + cross-aspects)
+  if (item.slug === 'synastry') {
+    return generateSynastryContent(customerData);
+  }
+
+  // All other items → unified resolver
+  const data = buildDataForPrompts(customerData, shared);
+  const { system, prompt, maxTokens, minWords } = resolveItemPrompt(itemId, data);
+
+  const cappedMax = Math.min(maxTokens, PER_CALL_TOKEN_CAP);
+
+  const result = await generateWithMinWords({
+    system,
+    prompt,
+    maxTokens: cappedMax,
+    minWords,
+    label: `${itemId}/${item.slug}`,
+  });
+
+  return { content: result.text, wordCount: result.wordCount, retried: result.retried };
+}
+
+// ─── SYNASTRY (special flow — 2-person cross-aspects) ────────────────────────
+async function generateSynastryContent(customerData) {
+  const { name, birthDate, birthTime = '', birthPlace,
           name2, birthDate2, birthTime2 = '', birthPlace2 } = customerData;
 
   console.log(`${LOG_PREFIX} Synastry: ${name} × ${name2}`);
 
-  const result = await synastryService.analyze({
+  const synResult = await synastryService.analyze({
     name1: name, birthDate1: birthDate, birthTime1: birthTime, birthPlace1: birthPlace,
     name2,        birthDate2,           birthTime2,           birthPlace2,
   });
 
-  let synastryPrompt = buildSynastryPrompt(result);
-  if (customerData.question) {
-    synastryPrompt += `
+  const prompt = buildSynastryPrompt(synResult, customerData.question);
+  const synastryItem = getBySlug('synastry');
 
-ДОПЪЛНИТЕЛНО — ЛИЧЕН ВЪПРОС ОТ КЛИЕНТА:
-"${customerData.question}"
-
-Преди финалното послание добави раздел "ОТГОВОР НА ТВОЯ ВЪПРОС" (2 параграфа) — конкретно, базирайки се на синастричния анализ по-горе.`;
-  }
-
-  console.log(`${LOG_PREFIX} Generating synastry AI analysis${customerData.question ? ' + question' : ''}...`);
-  const analysisText = await generateText(MASTER_SYSTEM_PROMPT, synastryPrompt, {
-    maxTokens: MAX_TOKENS.synastry,
+  const result = await generateWithMinWords({
+    system: MASTER_SYSTEM_PROMPT,
+    prompt,
+    maxTokens: Math.min(synastryItem.maxTokens, PER_CALL_TOKEN_CAP),
+    minWords: synastryItem.minWords,
+    label: 'synastry',
   });
 
-  // За PDF: използваме chart1 като натална карта (на поръчителя) и комбинирано име.
-  const combinedUserData = {
-    name: `${name}  ✦  ${name2}`,
-    gender,
-    birthDate,
-    birthPlace: `${birthPlace}  ·  ${birthPlace2}`,
-  };
-
-  console.log(`${LOG_PREFIX} Generating synastry PDF...`);
-  return ExportService.generateProductPDF('synastry', combinedUserData, analysisText, result.chart1, null);
+  return { content: result.text, wordCount: result.wordCount, retried: result.retried };
 }
 
-function buildSynastryPrompt(synastryResult) {
+function buildSynastryUserData(customerData) {
+  return {
+    name: `${customerData.name}  ✦  ${customerData.name2}`,
+    gender: customerData.gender,
+    birthDate: customerData.birthDate,
+    birthPlace: `${customerData.birthPlace}  ·  ${customerData.birthPlace2}`,
+  };
+}
+
+function buildSynastryPrompt(synastryResult, question) {
   const { person1, person2, crossAspects, compatibilityScore, compatibility } = synastryResult;
 
   const topAspects = (crossAspects || []).slice(0, 15)
-    .map(a => `${a.body1} (${person1.name}) ${a.symbol} ${a.body2} (${person2.name}) — ${a.aspect}, ${a.orb}° (${a.nature})`)
+    .map((a) => `${a.body1} (${person1.name}) ${a.symbol} ${a.body2} (${person2.name}) — ${a.aspect}, ${a.orb}° (${a.nature})`)
     .join('\n');
 
-  return `СИНАСТРИЯ — Любовна Съвместимост
+  let prompt = `СИНАСТРИЯ — Любовна Съвместимост
 
 ПЪРВИ ЧОВЕК:
 ${person1.name} · ${person1.birthDate}${person1.birthTime ? ' · ' + person1.birthTime : ''} · ${person1.birthPlace}
@@ -215,36 +262,30 @@ ${compatibility?.description || ''}
 ${topAspects || 'няма значими аспекти'}
 
 Напиши задълбочен синастричен анализ за връзката между ${person1.name} и ${person2.name}.
+Целева дължина: 14 страници (минимум 4900 думи).
 
-Структура (всеки раздел — поне 2 параграфа):
+Структура (всеки раздел — поне 2-3 параграфа):
 
-1. ОБЩА КАРТИНА НА ВРЪЗКАТА (2 параграфа)
-— Каква е енергията между тях на пръв поглед
-— Какво ги привлича един към друг на дълбоко ниво
+1. ОБЩА КАРТИНА НА ВРЪЗКАТА (3 параграфа)
+2. ЕМОЦИОНАЛНА СЪВМЕСТИМОСТ (3 параграфа)
+3. ФИЗИЧЕСКО И СТРАСТНО ПРИТЕГЛЯНЕ (3 параграфа)
+4. УМСТВЕНА И КОМУНИКАЦИОННА СЪВМЕСТИМОСТ (3 параграфа)
+5. КАРМИЧНАТА ВРЪЗКА (2 параграфа) — каква роля играят един за друг отвъд този живот
+6. ПРЕДИЗВИКАТЕЛСТВАТА (3 параграфа)
+7. КАК ВРЪЗКАТА СЕ РАЗВИВА ВЪВ ВРЕМЕТО (2 параграфа) — какво променя времето между тях
+8. ДЪЛГОСРОЧЕН ПОТЕНЦИАЛ (2 параграфа)
+9. ПОСЛАНИЕ ЗА ДВАМАТА (1 параграф — максимум 100 думи)
 
-2. ЕМОЦИОНАЛНА СЪВМЕСТИМОСТ (2 параграфа)
-— Как Луните им се срещат: разбират ли се емоционално, чувстват ли се в безопасност
-— Какви емоционални модели ще се повтарят между тях
+Психологически точен, честен, без захаросване. Минимум 4900 думи. Течен текст, без bullet points.`;
 
-3. ФИЗИЧЕСКО И СТРАСТНО ПРИТЕГЛЯНЕ (2 параграфа)
-— Венера и Марс във взаимодействие — каква химия имат
-— Колко лесно или трудно се поддържа страстта дългосрочно
+  if (question) {
+    prompt += `
 
-4. УМСТВЕНА И КОМУНИКАЦИОННА СЪВМЕСТИМОСТ (2 параграфа)
-— Как разговарят, мислят заедно, решават проблеми
-— Кое е лесно и кое предизвиква фрикции в общуването
+ДОПЪЛНИТЕЛНО — ЛИЧЕН ВЪПРОС: "${question}"
+Преди финалното послание добави раздел "ОТГОВОР НА ТВОЯ ВЪПРОС" (2 параграфа).`;
+  }
 
-5. ПРЕДИЗВИКАТЕЛСТВАТА (2 параграфа)
-— Кои аспекти създават напрежение и защо
-— Как могат да превърнат тези точки в растеж, а не в конфликт
-
-6. ДЪЛГОСРОЧЕН ПОТЕНЦИАЛ (1 параграф)
-— Какво трябва да се случи, за да издържи връзката години напред
-
-7. ПОСЛАНИЕ ЗА ДВАМАТА (1 параграф — максимум 80 думи)
-— Топло, директно послание към ${person1.name} и ${person2.name}
-
-Психологически точен, честен, без захаросване. Минимум 1200 думи. Течен текст, без bullet points.`;
+  return prompt;
 }
 
 module.exports = { processOrder };
