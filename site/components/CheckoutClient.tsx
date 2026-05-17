@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Product, formatBGN, formatEUR } from "@/lib/products";
+import { BUMPS, getBySlug as catalogGetBySlug, type CatalogItem } from "@/lib/catalog";
 import { TranslationKey } from "@/lib/i18n";
 import { useLanguage } from "@/hooks/useLanguage";
 import BumpPopup from "@/components/BumpPopup";
@@ -11,9 +12,8 @@ import LocationAutocomplete from "@/components/LocationAutocomplete";
 type T = (key: TranslationKey, vars?: Record<string, string | number>) => string;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const BUMP_PRICE = 4.99;
-const BUMP_OLD_PRICE = 12.49;
 const MIN_QUESTION_LENGTH = 10;
+const QUESTION_BUMP_ID = "B1";
 
 function formatBirthDate(input: string): string {
   const digits = input.replace(/\D/g, "").slice(0, 8);
@@ -83,12 +83,22 @@ export default function CheckoutClient({ product }: { product: Product }) {
   const [email, setEmail] = useState("");
   const [emailTouched, setEmailTouched] = useState(false);
 
-  const [bumpQuestion, setBumpQuestion] = useState(false);
+  const [selectedBumps, setSelectedBumps] = useState<Set<string>>(new Set());
   const [questionText, setQuestionText] = useState("");
-  const [bumpPartnerIdeal, setBumpPartnerIdeal] = useState(false);
 
   const [noRefund, setNoRefund] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const bumpQuestionSelected = selectedBumps.has(QUESTION_BUMP_ID);
+
+  const toggleBump = (id: string, on: boolean) => {
+    setSelectedBumps((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (popupSeen) return;
@@ -99,12 +109,20 @@ export default function CheckoutClient({ product }: { product: Product }) {
   const emailValid = EMAIL_RE.test(email);
   const showEmailError = emailTouched && email.length > 0 && !emailValid;
 
-  const total = useMemo(() => {
-    let sum = product.newPrice;
-    if (bumpQuestion) sum += BUMP_PRICE;
-    if (bumpPartnerIdeal) sum += BUMP_PRICE;
-    return sum;
-  }, [product.newPrice, bumpQuestion, bumpPartnerIdeal]);
+  const selectedBumpItems = useMemo<CatalogItem[]>(
+    () => BUMPS.filter((b) => selectedBumps.has(String(b.id))),
+    [selectedBumps],
+  );
+
+  const bumpsTotal = useMemo(
+    () => selectedBumpItems.reduce((s, b) => s + b.priceEur, 0),
+    [selectedBumpItems],
+  );
+
+  const total = useMemo(
+    () => product.newPrice + bumpsTotal,
+    [product.newPrice, bumpsTotal],
+  );
 
   const personLocationValid = !!person.birthLat && !!person.birthLon;
   const partnerLocationValid =
@@ -115,7 +133,7 @@ export default function CheckoutClient({ product }: { product: Product }) {
     !product.twoPersons ||
     (isValidBirthDate(partner.birthDate) && isValidBirthTime(partner.birthTime) && partnerLocationValid);
   const questionValid =
-    !bumpQuestion || questionText.trim().length >= MIN_QUESTION_LENGTH;
+    !bumpQuestionSelected || questionText.trim().length >= MIN_QUESTION_LENGTH;
   const canSubmit =
     emailValid &&
     noRefund &&
@@ -125,7 +143,7 @@ export default function CheckoutClient({ product }: { product: Product }) {
     !submitting;
 
   const handlePopupAccept = () => {
-    setBumpQuestion(true);
+    toggleBump(QUESTION_BUMP_ID, true);
     setPopupOpen(false);
     setPopupSeen(true);
   };
@@ -156,12 +174,16 @@ export default function CheckoutClient({ product }: { product: Product }) {
         customerData.birthPlace2 = partner.birthPlace;
       }
 
-      if (bumpQuestion && questionText.trim().length >= MIN_QUESTION_LENGTH) {
+      if (bumpQuestionSelected && questionText.trim().length >= MIN_QUESTION_LENGTH) {
         customerData.question = questionText.trim();
       }
 
-      const addOns: string[] = [];
-      if (bumpPartnerIdeal) addOns.push("ideal-partner");
+      // Build itemIds: main product id + each selected bump id
+      const mainItem = catalogGetBySlug(product.apiType);
+      const itemIds: Array<number | string> = [];
+      if (mainItem) itemIds.push(mainItem.id);
+      else itemIds.push(product.apiType); // fallback — backend will handle/reject
+      for (const b of selectedBumpItems) itemIds.push(b.id);
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/payments/create-checkout-session`,
@@ -169,11 +191,9 @@ export default function CheckoutClient({ product }: { product: Product }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            productType: product.apiType,
+            itemIds,
             customerData,
             email,
-            priceEur: total,
-            addOns,
           }),
         },
       );
@@ -276,63 +296,61 @@ export default function CheckoutClient({ product }: { product: Product }) {
                 {t("checkout.addons")}
               </h3>
 
-              <BumpItem
-                checked={bumpQuestion}
-                onChange={setBumpQuestion}
-                title={t("checkout.bump.question.title")}
-                description={t("checkout.bump.question.desc")}
-                oldPrice={BUMP_OLD_PRICE}
-                newPrice={BUMP_PRICE}
-              >
-                {bumpQuestion && (
-                  <div className="mt-4 animate-fade-in">
-                    <FieldLabel htmlFor="question">
-                      {t("checkout.question.label")}
-                    </FieldLabel>
-                    <div className="mb-3 rounded-md border border-gold/20 bg-card/40 p-3 space-y-1 text-xs text-parchment/75">
-                      <p>{t("checkout.question.helperWarn")}</p>
-                      <p>
-                        <span className="text-emerald-400">
-                          {t("checkout.question.helperValid")}
-                        </span>{" "}
-                        {t("checkout.question.helperValidEx")}
-                      </p>
-                      <p>
-                        <span className="text-red-400">
-                          {t("checkout.question.helperInvalid")}
-                        </span>{" "}
-                        {t("checkout.question.helperInvalidEx")}
-                      </p>
-                    </div>
-                    <textarea
-                      id="question"
-                      value={questionText}
-                      onChange={(e) => setQuestionText(e.target.value)}
-                      rows={3}
-                      placeholder={t("checkout.question.placeholder")}
-                      className="field resize-none"
-                    />
-                    {questionText.length > 0 &&
-                      questionText.trim().length < MIN_QUESTION_LENGTH && (
-                        <p className="mt-2 text-sm text-amber-400">
-                          {t("checkout.question.minChars", {
-                            min: MIN_QUESTION_LENGTH,
-                            current: questionText.trim().length,
-                          })}
-                        </p>
-                      )}
-                  </div>
-                )}
-              </BumpItem>
-
-              <BumpItem
-                checked={bumpPartnerIdeal}
-                onChange={setBumpPartnerIdeal}
-                title={t("checkout.bump.partner.title")}
-                description={t("checkout.bump.partner.desc")}
-                oldPrice={BUMP_OLD_PRICE}
-                newPrice={BUMP_PRICE}
-              />
+              {BUMPS.map((bump) => {
+                const id = String(bump.id);
+                const checked = selectedBumps.has(id);
+                return (
+                  <BumpItem
+                    key={id}
+                    checked={checked}
+                    onChange={(v) => toggleBump(id, v)}
+                    title={bump.title}
+                    description={bump.description || bump.subtitle}
+                    pages={bump.pages}
+                    price={bump.priceEur}
+                  >
+                    {id === QUESTION_BUMP_ID && checked && (
+                      <div className="mt-4 animate-fade-in">
+                        <FieldLabel htmlFor="question">
+                          {t("checkout.question.label")}
+                        </FieldLabel>
+                        <div className="mb-3 rounded-md border border-gold/20 bg-card/40 p-3 space-y-1 text-xs text-parchment/75">
+                          <p>{t("checkout.question.helperWarn")}</p>
+                          <p>
+                            <span className="text-emerald-400">
+                              {t("checkout.question.helperValid")}
+                            </span>{" "}
+                            {t("checkout.question.helperValidEx")}
+                          </p>
+                          <p>
+                            <span className="text-red-400">
+                              {t("checkout.question.helperInvalid")}
+                            </span>{" "}
+                            {t("checkout.question.helperInvalidEx")}
+                          </p>
+                        </div>
+                        <textarea
+                          id="question"
+                          value={questionText}
+                          onChange={(e) => setQuestionText(e.target.value)}
+                          rows={3}
+                          placeholder={t("checkout.question.placeholder")}
+                          className="field resize-none"
+                        />
+                        {questionText.length > 0 &&
+                          questionText.trim().length < MIN_QUESTION_LENGTH && (
+                            <p className="mt-2 text-sm text-amber-400">
+                              {t("checkout.question.minChars", {
+                                min: MIN_QUESTION_LENGTH,
+                                current: questionText.trim().length,
+                              })}
+                            </p>
+                          )}
+                      </div>
+                    )}
+                  </BumpItem>
+                );
+              })}
             </section>
 
             <FormCard>
@@ -413,24 +431,16 @@ export default function CheckoutClient({ product }: { product: Product }) {
                   </span>
                 </div>
 
-                {(bumpQuestion || bumpPartnerIdeal) && (
+                {selectedBumpItems.length > 0 && (
                   <div className="mt-5 pt-5 border-t border-gold/15 space-y-2 text-sm">
-                    {bumpQuestion && (
-                      <div className="flex justify-between text-parchment/80">
-                        <span>+ {t("checkout.bump.question.title")}</span>
+                    {selectedBumpItems.map((b) => (
+                      <div key={b.id} className="flex justify-between text-parchment/80">
+                        <span>+ {b.title}</span>
                         <span className="text-emerald-400">
-                          {formatEUR(BUMP_PRICE)}
+                          {formatEUR(b.priceEur)}
                         </span>
                       </div>
-                    )}
-                    {bumpPartnerIdeal && (
-                      <div className="flex justify-between text-parchment/80">
-                        <span>+ {t("checkout.bump.partner.title")}</span>
-                        <span className="text-emerald-400">
-                          {formatEUR(BUMP_PRICE)}
-                        </span>
-                      </div>
-                    )}
+                    ))}
                   </div>
                 )}
 
@@ -671,16 +681,16 @@ function BumpItem({
   onChange,
   title,
   description,
-  oldPrice,
-  newPrice,
+  pages,
+  price,
   children,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   title: string;
   description: string;
-  oldPrice: number;
-  newPrice: number;
+  pages: number;
+  price: number;
   children?: React.ReactNode;
 }) {
   return (
@@ -701,16 +711,14 @@ function BumpItem({
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <span className="font-serif text-lg text-parchment">{title}</span>
-            <span className="flex items-baseline gap-2 whitespace-nowrap">
-              <span className="text-sm text-red-400/80 line-through">
-                {formatEUR(oldPrice)}
-              </span>
-              <span className="font-semibold text-emerald-400">
-                {formatEUR(newPrice)}
-              </span>
+            <span className="font-semibold text-emerald-400 whitespace-nowrap">
+              +{formatEUR(price)}
             </span>
           </div>
           <p className="text-sm text-parchment/70 mt-1">{description}</p>
+          <p className="text-xs text-parchment/45 mt-2">
+            📄 {pages} {pages === 1 ? "страница" : "страници"} · PDF секция в анализа
+          </p>
         </div>
       </label>
       {children}
