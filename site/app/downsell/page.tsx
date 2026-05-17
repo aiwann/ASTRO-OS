@@ -145,7 +145,7 @@ function DownsellContent() {
 
       <div className="mt-12 text-center">
         <a
-          href="/thank-you"
+          href={sessionId ? `/thank-you?session_id=${sessionId}` : "/thank-you"}
           className="text-sm text-muted hover:text-gold-light transition-colors underline-offset-4 hover:underline"
         >
           Не, благодаря — продължи към завършване →
