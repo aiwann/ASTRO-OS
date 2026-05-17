@@ -481,11 +481,34 @@ export default function CheckoutClient({ product }: { product: Product }) {
                 </div>
               </div>
 
-              <ul className="rounded-2xl border border-gold/15 bg-card/50 p-5 space-y-2 text-sm text-parchment/80">
-                <li>{t("checkout.trust.secure")}</li>
-                <li>{t("checkout.trust.email")}</li>
-                <li>{t("checkout.trust.fast")}</li>
-              </ul>
+              <div className="rounded-2xl border border-gold/15 bg-card/50 p-5 space-y-3 text-sm text-parchment/80">
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-400">🔒</span>
+                  <span>{t("checkout.trust.secure")}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-400">📩</span>
+                  <span>{t("checkout.trust.email")}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-400">⚡</span>
+                  <span>{t("checkout.trust.fast")}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-400">↩️</span>
+                  <span className="text-parchment/70">
+                    30-дневна гаранция за съдържанието или връщане на средствата
+                  </span>
+                </div>
+
+                {/* Stripe powered badge */}
+                <div className="pt-2 border-t border-gold/10 flex items-center gap-2 text-xs text-parchment/40">
+                  <svg viewBox="0 0 50 21" className="h-4 fill-current opacity-50" aria-label="Stripe">
+                    <path d="M4.63 7.27c0-.8.66-1.1 1.75-1.1 1.57 0 3.55.48 5.12 1.33V3.27C9.78 2.56 8.05 2.3 6.38 2.3 2.72 2.3 0 4.2 0 7.46c0 5.1 7.02 4.28 7.02 6.48 0 .95-.82 1.25-1.97 1.25-1.7 0-3.87-.7-5.58-1.64v4.28C1.2 18.56 3.1 19 4.97 19c3.76 0 6.35-1.86 6.35-5.16-.02-5.5-7.03-4.52-7.03-6.57H4.63zM15.87 0l-3.67.78v15.66l3.67.56V0zm4.1 5.8v10.67l3.67.53V5.27l-3.67.53zm1.84-1.92c1.17 0 2.12-.95 2.12-2.12A2.12 2.12 0 0021.8 0a2.12 2.12 0 00-2.12 2.12c0 1.17.95 1.76 2.12 1.76zm10.3 1.92c-1.22 0-2.45.48-3.27 1.26l-.12-1.03H25.5v18.7l3.67-.78.01-4.54c.6.44 1.47.69 2.44.69 2.45 0 4.69-1.97 4.69-6.32 0-4.0-2.26-7.98-4.69-7.98l.49 0zm-.82 11.8c-.62 0-1.04-.22-1.37-.57l-.01-4.5c.35-.38.78-.59 1.38-.59 1.05 0 1.78 1.18 1.78 2.83 0 1.68-.71 2.83-1.78 2.83zm15.15-11.8c-3.55 0-5.7 2.99-5.7 6.32 0 4.16 2.35 6.32 5.97 6.32 1.72 0 3.01-.39 4.0-1.04v-3.22c-.99.55-2.1.88-3.52.88-1.4 0-2.63-.49-2.79-2.18h7.02c.01-.19.03-.95.03-1.3 0-3.19-1.6-5.78-5.01-5.78zm-1.98 4.97c0-1.62.99-2.29 1.94-2.29.93 0 1.85.67 1.85 2.29H44.46z"/>
+                  </svg>
+                  <span>Плащането е обработено от Stripe</span>
+                </div>
+              </div>
             </div>
           </aside>
         </form>
