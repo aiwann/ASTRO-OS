@@ -919,7 +919,12 @@ class ExportService {
 
       const doc = new PDFDocument({
         size: 'A4',
-        margin: 0,
+        // Margins enforce safe top/bottom so body text auto-paginates BEFORE
+        // overlapping the footer and so continuation pages get proper headroom.
+        // Left/right keep MARGIN so wrapped lines align with the body column.
+        // Full-bleed pages (cover/divider/closing) draw at explicit x/y and
+        // are unaffected by these margins.
+        margins: { top: 70, bottom: 55, left: MARGIN, right: MARGIN },
         info: {
           Title: `${mainTitle} — ${userData?.name || ''}`,
           Author: 'Astro OS',

@@ -192,18 +192,25 @@ async function generateItemContent(itemId, customerData, shared) {
 
   // All other items → unified resolver
   const data = buildDataForPrompts(customerData, shared);
-  const { system, prompt, maxTokens, minWords } = resolveItemPrompt(itemId, data);
+  const { system, prompt, cachedContext, maxTokens, minWords } = resolveItemPrompt(itemId, data);
 
   const cappedMax = Math.min(maxTokens, PER_CALL_TOKEN_CAP);
 
-  console.log(`${LOG_PREFIX} Item ${itemId}/${item.slug}: starting (maxTokens=${cappedMax}, minWords=${minWords})`);
+  // Use cheaper Haiku for short bump items — they're focused, short (≤700 words),
+  // and Haiku handles them with comparable quality at ~5× lower cost.
+  // Mains/downsells stay on Sonnet for depth.
+  const model = item.kind === 'bump' ? 'claude-haiku-4-5-20251001' : undefined;
+
+  console.log(`${LOG_PREFIX} Item ${itemId}/${item.slug}: starting (${model || 'default'}, maxTokens=${cappedMax}, minWords=${minWords})`);
   const t0 = Date.now();
 
   const result = await generateWithMinWords({
     system,
     prompt,
+    cachedContext,
     maxTokens: cappedMax,
     minWords,
+    model,
     label: `${itemId}/${item.slug}`,
   });
 

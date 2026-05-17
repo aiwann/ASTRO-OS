@@ -24,14 +24,17 @@ function countWords(text) {
 async function generateWithMinWords({
   system,
   prompt,
+  cachedContext,
   maxTokens,
   minWords,
+  model,
   label = 'unknown',
 }) {
   const threshold = Math.floor(minWords * MIN_WORD_RATIO);
+  const callOpts = { maxTokens, cachedContext, model };
 
   // First attempt
-  let text = await generateText(system, prompt, { maxTokens });
+  let text = await generateText(system, prompt, callOpts);
   let count = countWords(text);
 
   console.log(`${LOG_PREFIX} ${label}: first pass = ${count} words (target ${minWords}, threshold ${threshold})`);
@@ -40,27 +43,20 @@ async function generateWithMinWords({
     return { text, wordCount: count, retried: false, targetMet: true };
   }
 
-  // Retry with explicit expansion instruction
-  console.warn(`${LOG_PREFIX} ${label}: too short — retrying with expansion request`);
+  // Retry — regenerate from scratch with a stronger length directive prepended.
+  // We deliberately do NOT echo the previous draft back: doubling input tokens
+  // rarely improved output and the AI tended to just pad existing prose.
+  // Asking for a fresh attempt with stricter length target gives better results.
+  console.warn(`${LOG_PREFIX} ${label}: too short — retrying (fresh) with stricter length target`);
 
   const expandPrompt = `${prompt}
 
-⚠️ ВАЖНО — ПРЕДИШЕН ОПИТ БЕШЕ ТВЪРДЕ КРАТЪК (${count} думи вместо целта ${minWords})
+⚠️ КРИТИЧНО ИЗИСКВАНЕ ЗА ДЪЛЖИНА:
+Предишен опит даде само ${count} думи — НЕДОСТАТЪЧНО.
+ТРЯБВА да генерираш МИНИМУМ ${minWords} думи (целта е ${Math.round(minWords * 1.1)}).
+Развий всеки параграф с конкретни примери, детайли и дълбочина. Не повтаряй — обогатявай.`;
 
-Ето черновата:
-"""
-${text}
-"""
-
-Разшири я до МИНИМУМ ${minWords} думи, като:
-— Добавиш повече конкретни примери и детайли
-— Развиеш всеки параграф с поне 30-40% повече съдържание
-— НЕ съкращаваш и НЕ повтаряш — добавяй НОВО съдържание
-— Запазваш структурата и тона
-
-Върни ПЪЛНИЯ разширен текст, не само добавките.`;
-
-  const text2 = await generateText(system, expandPrompt, { maxTokens });
+  const text2 = await generateText(system, expandPrompt, callOpts);
   const count2 = countWords(text2);
 
   console.log(`${LOG_PREFIX} ${label}: retry pass = ${count2} words`);

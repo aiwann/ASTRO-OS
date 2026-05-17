@@ -492,4 +492,4 @@ ${idealPartnerBody(data)}
   },
 };
 
-module.exports = { PRODUCT_PROMPTS };
+module.exports = { PRODUCT_PROMPTS, buildFullNatalContext };

@@ -20,7 +20,7 @@
 
 const WORDS_PER_PAGE = 350;
 const TOKENS_PER_WORD = 2.0;
-const MIN_WORD_RATIO = 0.9; // retry if generated < 90% of target
+const MIN_WORD_RATIO = 0.8; // accept as pass if ≥ 80% of target (was 90%)
 
 function tokens(pages) {
   return Math.ceil(pages * WORDS_PER_PAGE * TOKENS_PER_WORD);

@@ -217,4 +217,4 @@ const BUMP_PROMPTS = {
   bumpMoon,
 };
 
-module.exports = { BUMP_PROMPTS };
+module.exports = { BUMP_PROMPTS, buildUserCtx };

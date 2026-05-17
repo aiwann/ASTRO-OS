@@ -29,12 +29,34 @@ async function generateText(systemPrompt, userPrompt, options = {}) {
   const selectedModel = options.model || model;
   const maxTokens = options.maxTokens || 2000;
 
+  // ── Prompt caching ────────────────────────────────────────────────────────
+  // System prompt + optional cachedContext are wrapped with cache_control so
+  // Anthropic caches them (5-min TTL). When 5-6 parallel items in one order
+  // share the same MASTER_SYSTEM_PROMPT and natal context, we pay full price
+  // ONCE per cache miss and ~10% per subsequent hit.
+  // Caching requires a min of ~1024 tokens (sonnet) / ~2048 (haiku) — system
+  // prompt alone may not qualify, so we add the natal context too when given.
+  const systemBlocks = [{
+    type: 'text',
+    text: systemPrompt,
+    cache_control: { type: 'ephemeral' },
+  }];
+
+  // Allow caller to pre-pend a reusable user-context block (e.g. natal chart)
+  // before the actual item-specific instruction.
+  const userContent = options.cachedContext
+    ? [
+        { type: 'text', text: options.cachedContext, cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: userPrompt },
+      ]
+    : userPrompt;
+
   // Extended output beta required for > 8192 tokens (enables up to 128K)
   const params = {
     model: selectedModel,
     max_tokens: maxTokens,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userPrompt }],
+    system: systemBlocks,
+    messages: [{ role: 'user', content: userContent }],
   };
   if (maxTokens > 8192) {
     params.betas = ['output-128k-2025-02-19'];
