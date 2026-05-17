@@ -25,6 +25,22 @@ export const metadata: Metadata = {
   title: "Астро ОС — Персонален AI Анализ",
   description:
     "Следващо поколение AI астрология. Персонализирани анализи с дълбочина на часова консултация — готови за минути.",
+  metadataBase: new URL("https://astro-os.net"),
+  openGraph: {
+    title: "Астро ОС — Персонален AI Астрологичен Анализ",
+    description:
+      "Персонализирани астрологични анализи, генерирани от AI. PDF доставка в минути. От €5.99.",
+    url: "https://astro-os.net",
+    siteName: "Астро ОС",
+    locale: "bg_BG",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Астро ОС — Персонален AI Астрологичен Анализ",
+    description:
+      "Персонализирани астрологични анализи, генерирани от AI. PDF доставка в минути.",
+  },
 };
 
 export default function RootLayout({
