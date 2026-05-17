@@ -15,8 +15,10 @@ const { getById, getBySlug }   = require('../catalog');
 
 const LOG_PREFIX = '[OrderService]';
 
-// Hard cap on per-call max_tokens. Claude's practical extended-output limit.
-const PER_CALL_TOKEN_CAP = 16000;
+// Hard cap on per-call max_tokens.
+// Extended output beta (output-128k-2025-02-19) supports up to 128K.
+// Cap at 32000 — covers item 9 (21K) with headroom.
+const PER_CALL_TOKEN_CAP = 32000;
 
 // ─── BACKWARD-COMPAT SHIM ─────────────────────────────────────────────────────
 // Legacy callers used { productType, customerData, email, addOns }.
@@ -194,6 +196,9 @@ async function generateItemContent(itemId, customerData, shared) {
 
   const cappedMax = Math.min(maxTokens, PER_CALL_TOKEN_CAP);
 
+  console.log(`${LOG_PREFIX} Item ${itemId}/${item.slug}: starting (maxTokens=${cappedMax}, minWords=${minWords})`);
+  const t0 = Date.now();
+
   const result = await generateWithMinWords({
     system,
     prompt,
@@ -201,6 +206,9 @@ async function generateItemContent(itemId, customerData, shared) {
     minWords,
     label: `${itemId}/${item.slug}`,
   });
+
+  const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+  console.log(`${LOG_PREFIX} Item ${itemId}/${item.slug}: done in ${elapsed}s (${result.wordCount} words)`);
 
   return { content: result.text, wordCount: result.wordCount, retried: result.retried };
 }

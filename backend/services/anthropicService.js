@@ -27,14 +27,32 @@ async function getClient() {
 async function generateText(systemPrompt, userPrompt, options = {}) {
   const { client, model } = await getClient();
   const selectedModel = options.model || model;
+  const maxTokens = options.maxTokens || 2000;
 
-  const message = await client.messages.create({
+  // Extended output beta required for > 8192 tokens (enables up to 128K)
+  const params = {
     model: selectedModel,
-    max_tokens: options.maxTokens || 2000,
+    max_tokens: maxTokens,
     system: systemPrompt,
     messages: [{ role: 'user', content: userPrompt }],
-  });
+  };
+  if (maxTokens > 8192) {
+    params.betas = ['output-128k-2025-02-19'];
+  }
 
+  // Use streaming accumulation for large outputs to avoid HTTP timeout
+  if (maxTokens > 8192) {
+    let text = '';
+    const stream = client.messages.stream(params);
+    for await (const chunk of stream) {
+      if (chunk.type === 'content_block_delta' && chunk.delta?.type === 'text_delta') {
+        text += chunk.delta.text;
+      }
+    }
+    return text;
+  }
+
+  const message = await client.messages.create(params);
   return message.content[0].text;
 }
 
