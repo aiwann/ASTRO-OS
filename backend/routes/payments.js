@@ -197,6 +197,9 @@ router.post('/create-upsell-session', upsellLimiter, async (req, res) => {
     if (itemIdsStr.length > 490) {
       return res.status(400).json({ success: false, error: 'Твърде много продукти в една поръчка.' });
     }
+    if (customerData.length > 490) {
+      return res.status(400).json({ success: false, error: 'Данните за клиента са твърде дълги.' });
+    }
 
     const orderLabel = describeOrder(itemIds) || 'Допълнителен анализ';
     const description = itemIds.length > 1

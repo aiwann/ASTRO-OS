@@ -31,7 +31,7 @@ async function sendAnalysisEmail({ to, customerName, productTitle, pdfPath }) {
     throw new Error(`PDF файлът не е намерен: ${pdfPath}`);
   }
 
-  const pdfBuffer = fs.readFileSync(pdfPath);
+  const pdfBuffer = await fs.promises.readFile(pdfPath);
   const filename  = path.basename(pdfPath);
 
   const html = `<!DOCTYPE html>
