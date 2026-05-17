@@ -49,10 +49,9 @@ router.get('/:id/pdf', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', fileBuffer.length);
 
+    res.on('finish', () => tempFileManager.cleanupFile(exportData.filepath));
     res.send(fileBuffer);
     console.log(`${LOG_PREFIX} PDF sent: ${filename}`);
-
-    tempFileManager.cleanupFile(exportData.filepath);
 
   } catch (err) {
     console.error(`${LOG_PREFIX} PDF error:`, err.message);
@@ -84,10 +83,9 @@ router.get('/:id/docx', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', fileBuffer.length);
 
+    res.on('finish', () => tempFileManager.cleanupFile(exportData.filepath));
     res.send(fileBuffer);
     console.log(`${LOG_PREFIX} DOCX sent: ${filename}`);
-
-    tempFileManager.cleanupFile(exportData.filepath);
 
   } catch (err) {
     console.error(`${LOG_PREFIX} DOCX error:`, err.message);
@@ -117,10 +115,9 @@ router.get('/:id/markdown', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', fileBuffer.length);
 
+    res.on('finish', () => tempFileManager.cleanupFile(exportData.filepath));
     res.send(fileBuffer);
     console.log(`${LOG_PREFIX} Markdown sent: ${filename}`);
-
-    tempFileManager.cleanupFile(exportData.filepath);
 
   } catch (err) {
     console.error(`${LOG_PREFIX} Markdown error:`, err.message);
@@ -150,10 +147,9 @@ router.get('/:id/txt', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', fileBuffer.length);
 
+    res.on('finish', () => tempFileManager.cleanupFile(exportData.filepath));
     res.send(fileBuffer);
     console.log(`${LOG_PREFIX} TXT sent: ${filename}`);
-
-    tempFileManager.cleanupFile(exportData.filepath);
 
   } catch (err) {
     console.error(`${LOG_PREFIX} TXT error:`, err.message);
