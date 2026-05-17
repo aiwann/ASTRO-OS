@@ -155,7 +155,7 @@ class ExportService {
 
       const doc = new PDFDocument({
         size: 'A4',
-        margin: 0,
+        margins: { top: 70, bottom: 55, left: MARGIN, right: MARGIN },
         info: {
           Title: `Астрологичен Доклад — ${report.user_name}`,
           Author: 'Astro OS',
@@ -632,7 +632,7 @@ class ExportService {
 
       const doc = new PDFDocument({
         size: 'A4',
-        margin: 0,
+        margins: { top: 70, bottom: 55, left: MARGIN, right: MARGIN },
         info: {
           Title: `${title} — ${userData?.name || ''}`,
           Author: 'Astro OS',
