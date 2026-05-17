@@ -81,7 +81,10 @@ function validateOrder({ itemIds, customerData, email }) {
  *   - email: string
  */
 async function processOrder(input) {
-  const { itemIds: rawIds, customerData, email } = normalizeOrder(input);
+  const { itemIds: rawIdsRaw, customerData, email } = normalizeOrder(input);
+  // Deduplicate before validation — prevents billing 1 item but triggering 3x AI
+  const seen = new Set();
+  const rawIds = rawIdsRaw.filter((id) => { const k = String(id); return seen.has(k) ? false : seen.add(k); });
   validateOrder({ itemIds: rawIds, customerData, email });
 
   // Expand upsell bundles (U3 → main + chosen bumps)
