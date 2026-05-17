@@ -89,6 +89,7 @@ export default function CheckoutClient({ product }: { product: Product }) {
 
   const [noRefund, setNoRefund] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const bumpQuestionSelected = selectedBumps.has(QUESTION_BUMP_ID);
 
@@ -162,6 +163,7 @@ export default function CheckoutClient({ product }: { product: Product }) {
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
+    setSubmitError(null);
 
     try {
       const customerData: Record<string, string> = {
@@ -216,7 +218,7 @@ export default function CheckoutClient({ product }: { product: Product }) {
     } catch (err) {
       setSubmitting(false);
       const msg = err instanceof Error ? err.message : "Моля опитай отново.";
-      alert(`Грешка: ${msg}`);
+      setSubmitError(msg);
     }
   };
 
@@ -408,6 +410,15 @@ export default function CheckoutClient({ product }: { product: Product }) {
                 </>
               )}
             </button>
+
+            {submitError && (
+              <div className="mt-4 rounded-lg border border-red-500/40 bg-red-950/30 px-4 py-3 text-sm text-red-300">
+                <span className="font-semibold">Грешка: </span>{submitError}
+                <span className="block mt-1 text-red-400/70 text-xs">
+                  Данните ти са запазени — можеш да опиташ отново.
+                </span>
+              </div>
+            )}
           </div>
 
           <aside className="lg:col-span-2">
