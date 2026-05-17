@@ -58,6 +58,19 @@ function toISO(date: string): string {
   return `${y}-${m}-${d}`;
 }
 
+const BIRTH_STORAGE_KEY = "astro-os-birth";
+
+function loadSavedPerson(): PersonFields {
+  if (typeof window === "undefined") return emptyPerson;
+  try {
+    const raw = localStorage.getItem(BIRTH_STORAGE_KEY);
+    if (!raw) return emptyPerson;
+    return { ...emptyPerson, ...JSON.parse(raw) };
+  } catch {
+    return emptyPerson;
+  }
+}
+
 type PersonFields = {
   name: string;
   gender: "male" | "female" | "";
@@ -84,7 +97,7 @@ export default function CheckoutClient({ product }: { product: Product }) {
   const [popupSeen, setPopupSeen] = useState(false);
   const [formTouched, setFormTouched] = useState(false);
 
-  const [person, setPerson] = useState<PersonFields>(emptyPerson);
+  const [person, setPerson] = useState<PersonFields>(loadSavedPerson);
   const [partner, setPartner] = useState<PersonFields>(emptyPerson);
   const [email, setEmail] = useState("");
   const [emailTouched, setEmailTouched] = useState(false);
@@ -117,6 +130,13 @@ export default function CheckoutClient({ product }: { product: Product }) {
     }, 3000);
     return () => clearTimeout(timer);
   }, [popupSeen, formTouched]);
+
+  // Persist birth data so returning users don't re-type it
+  useEffect(() => {
+    try {
+      localStorage.setItem(BIRTH_STORAGE_KEY, JSON.stringify(person));
+    } catch {}
+  }, [person]);
 
   const emailValid = EMAIL_RE.test(email);
   const showEmailError = emailTouched && email.length > 0 && !emailValid;
