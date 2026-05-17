@@ -5,6 +5,7 @@ const router = express.Router();
 const Stripe = require('stripe');
 const orderService = require('../services/orderService');
 const { getById, getBySlug, computeOrderTotal } = require('../catalog');
+const { isProcessed, markProcessed } = require('../utils/idempotency');
 
 function getStripe() {
   if (!process.env.STRIPE_SECRET_KEY) throw new Error('STRIPE_SECRET_KEY не е конфигуриран');
@@ -225,6 +226,16 @@ router.post('/webhook', async (req, res) => {
     console.error('[Payments] Webhook signature error:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
+
+  // Idempotency — Stripe retries on network errors / non-2xx; skip duplicates.
+  if (isProcessed(event.id)) {
+    console.log(`[Payments] Webhook: skipping duplicate event ${event.id} (${event.type})`);
+    return res.json({ received: true, duplicate: true });
+  }
+  // Mark BEFORE processing so a crash mid-process doesn't lead to retry-loop
+  // (we'd rather drop one delivery than double-charge). processOrder itself
+  // logs failures so we can manually recover if needed.
+  markProcessed(event.id);
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
