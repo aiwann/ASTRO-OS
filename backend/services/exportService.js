@@ -173,9 +173,12 @@ class ExportService {
       // IMPORTANT: do NOT use save/restore here — doc.restore() only resets the PDF
       // graphics stack (Q operator), it does NOT reset PDFKit's internal JS _fillColor.
       // Text drawn after restore() would inherit C.bg (near-black) and be invisible.
+      let _pageNum = 0;
       doc.on('pageAdded', () => {
+        _pageNum++;
         doc.rect(0, 0, PAGE_W, PAGE_H).fill(C.bg);
         doc.fillColor(C.textDim).fillOpacity(1);
+        if (_pageNum > 1) pageFooter(doc, _pageNum, fonts);
       });
 
       try {
@@ -307,7 +310,6 @@ class ExportService {
     doc.text('Астрологичен Профил', 0, MARGIN + 10, { align: 'center', width: PAGE_W, characterSpacing: 2 });
 
     ornamentDivider(doc, MARGIN + 48, C.gold, 0.35);
-    pageFooter(doc, pageNum, fonts);
 
     // Astrology grid — 4 cards in 2×2
     const cardW = (CONTENT_W - 16) / 2;
@@ -419,7 +421,6 @@ class ExportService {
     // Divider under title
     const titleBottom = doc.y + 10;
     ornamentDivider(doc, titleBottom, C.gold, 0.35);
-    pageFooter(doc, pageNum, fonts);
 
     // Strip all markdown syntax from AI-generated content
     const rawContent = (section.content || '')
@@ -461,7 +462,7 @@ class ExportService {
         .replace(/^\s*\d+\.\s+/, '')             // ordered list numbers
         .replace(/\[(.+?)\]\(.+?\)/g, '$1')      // links → just label
         .replace(/^>\s+/, '')                    // blockquotes
-        .replace(/#{1,6}/g, '')                  // stray # chars anywhere on line
+        .replace(/(?<!\S)#{1,6}(?=\s|$)/g, '')   // heading markers left after initial pass
         .replace(/\s{2,}/g, ' ')                 // collapse multiple spaces
         .trimEnd();
 
@@ -646,9 +647,12 @@ class ExportService {
       stream.on('error', reject);
       doc.on('error', reject);
 
+      let _pageNum = 0;
       doc.on('pageAdded', () => {
+        _pageNum++;
         doc.rect(0, 0, PAGE_W, PAGE_H).fill(C.bg);
         doc.fillColor(C.textDim).fillOpacity(1);
+        if (_pageNum > 1) pageFooter(doc, _pageNum, fonts);
       });
 
       try {
@@ -938,9 +942,12 @@ class ExportService {
       stream.on('error', reject);
       doc.on('error', reject);
 
+      let _pageNum = 0;
       doc.on('pageAdded', () => {
+        _pageNum++;
         doc.rect(0, 0, PAGE_W, PAGE_H).fill(C.bg);
         doc.fillColor(C.textDim).fillOpacity(1);
+        if (_pageNum > 1) pageFooter(doc, _pageNum, fonts);
       });
 
       try {
