@@ -10,6 +10,10 @@ const fs       = require('fs');
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
+// Railway (and most PaaS) sit behind a reverse proxy — trust the first hop
+// so express-rate-limit can read X-Forwarded-For correctly
+app.set('trust proxy', 1);
+
 app.use(cors({
   origin: [
     'http://localhost:5173',
