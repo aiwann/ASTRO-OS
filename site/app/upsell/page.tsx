@@ -12,7 +12,7 @@ import {
   type CatalogItem,
 } from "@/lib/catalog";
 
-const COUNTDOWN_SECONDS = 5 * 60;
+const COUNTDOWN_SECONDS = 15 * 60;
 const U3_REQUIRED_BUMPS = 3;
 
 function formatTime(s: number): string {
@@ -145,14 +145,14 @@ function UpsellContent() {
         </p>
         <div className="mt-6 inline-flex items-baseline gap-3 px-6 py-3 rounded-xl border border-gold/30 bg-card/70">
           <span className="text-xs tracking-widest uppercase text-muted">
-            Офертата изтича след
+            {secondsLeft === 0 ? "Офертата е валидна" : "Офертата изтича след"}
           </span>
           <span
             className={`font-serif text-3xl sm:text-4xl font-semibold tabular-nums ${
-              secondsLeft === 0 ? "text-red-400" : "text-gold-light"
+              secondsLeft === 0 ? "text-parchment/50" : secondsLeft < 60 ? "text-amber-400" : "text-gold-light"
             }`}
           >
-            {formatTime(secondsLeft)}
+            {secondsLeft === 0 ? "за тази сесия" : formatTime(secondsLeft)}
           </span>
         </div>
       </header>
