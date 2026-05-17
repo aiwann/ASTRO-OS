@@ -3,9 +3,30 @@
 const express = require('express');
 const router = express.Router();
 const Stripe = require('stripe');
+const rateLimit = require('express-rate-limit');
 const orderService = require('../services/orderService');
 const { getById, getBySlug, computeOrderTotal } = require('../catalog');
 const { isProcessed, markProcessed } = require('../utils/idempotency');
+
+// ─── Rate limiters ───────────────────────────────────────────────────────────
+// Prevents spam that would consume AI quota without payment.
+// Limits are per IP; generous enough for legitimate use, tight enough to block bots.
+
+const checkoutLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,                   // 10 sessions per IP per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Твърде много заявки. Моля опитайте след малко.' },
+});
+
+const upsellLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,                   // slightly higher — upsell can be revisited more often
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Твърде много заявки. Моля опитайте след малко.' },
+});
 
 function getStripe() {
   if (!process.env.STRIPE_SECRET_KEY) throw new Error('STRIPE_SECRET_KEY не е конфигуриран');
@@ -34,7 +55,7 @@ function emailRegex(s) {
 // ─── POST /api/payments/create-checkout-session ─────────────────────────────
 // New format:  { itemIds: [1, 'B2', 'B4'], customerData, email, applyBundleDiscount? }
 // Legacy:      { productType, customerData, email, priceEur, addOns? }
-router.post('/create-checkout-session', async (req, res) => {
+router.post('/create-checkout-session', checkoutLimiter, async (req, res) => {
   try {
     const { customerData, email } = req.body;
 
@@ -124,7 +145,7 @@ router.post('/create-checkout-session', async (req, res) => {
 // ─── POST /api/payments/create-upsell-session ───────────────────────────────
 // New format: { originalSessionId, itemIds: [4, 'B2'], applyBundleDiscount }
 // Legacy:     { originalSessionId, productType, productLabel, priceEur }
-router.post('/create-upsell-session', async (req, res) => {
+router.post('/create-upsell-session', upsellLimiter, async (req, res) => {
   try {
     const { originalSessionId } = req.body;
     if (!originalSessionId) {
