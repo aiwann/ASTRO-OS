@@ -863,6 +863,327 @@ class ExportService {
     doc.fillOpacity(1);
   }
 
+  // ===== MERGED PDF (multi-section orders) =====
+
+  /**
+   * Produce ONE PDF combining N sections (main + bumps + …) from a single order.
+   *
+   * @param {Array<{ title: string, content: string, catalogItem?: object }>} sections
+   * @param {object} userData     — { name, birthDate, birthPlace, ... }
+   * @param {object} natal        — natal chart (for cover/closing)
+   * @param {object} numerology   — numerology (for cover/closing)
+   * @returns {Promise<{ filepath, filename, fileSize }>}
+   */
+  static async generateMergedPDF(sections, userData, natal, numerology) {
+    const stage = `Merged PDF (${sections.length} sections)`;
+    const safeName = (userData?.name || 'astro').replace(/\s+/g, '-');
+    const filename = tempFileManager.generateFileName(`${safeName}-merged`, 'pdf');
+    const filepath = tempFileManager.getTempPath(filename);
+
+    try {
+      console.log(`${LOG_PREFIX} [${stage}] START: ${filename}`);
+      await this.buildMergedPdfKit(filepath, sections, userData, natal, numerology);
+      console.log(`${LOG_PREFIX} [${stage}] PDF written to disk`);
+
+      const fileSize = tempFileManager.validateFile(filepath, 2000);
+      console.log(`${LOG_PREFIX} [${stage}] Validated: ${fileSize} bytes — SUCCESS`);
+
+      return { filepath, filename, fileSize };
+    } catch (err) {
+      console.error(`${LOG_PREFIX} [${stage}] ERROR:`, err.message);
+      tempFileManager.cleanupFile(filepath);
+      throw err;
+    }
+  }
+
+  static buildMergedPdfKit(filepath, sections, userData, natal, numerology) {
+    return new Promise((resolve, reject) => {
+      if (!Array.isArray(sections) || sections.length === 0) {
+        return reject(new Error('generateMergedPDF: sections array is empty'));
+      }
+
+      let fonts;
+      try {
+        fonts = {
+          regular: findFont('regular'),
+          bold:    findFont('bold'),
+          italic:  findFont('italic'),
+        };
+      } catch (err) {
+        return reject(err);
+      }
+
+      const mainTitle = sections.length === 1
+        ? sections[0].title
+        : 'ТВОЯТ ПЪЛЕН АНАЛИЗ';
+
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 0,
+        info: {
+          Title: `${mainTitle} — ${userData?.name || ''}`,
+          Author: 'Astro OS',
+          Subject: sections.map((s) => s.title).join(' · '),
+        },
+      });
+
+      const stream = fs.createWriteStream(filepath);
+      doc.pipe(stream);
+      stream.on('finish', resolve);
+      stream.on('error', reject);
+      doc.on('error', reject);
+
+      doc.on('pageAdded', () => {
+        doc.rect(0, 0, PAGE_W, PAGE_H).fill(C.bg);
+        doc.fillColor(C.textDim).fillOpacity(1);
+      });
+
+      try {
+        // ── 1. COVER (lists every included service) ──
+        this.drawMergedCoverPage(doc, mainTitle, sections, userData, natal, fonts);
+
+        // ── 2. TABLE OF CONTENTS (only when multiple sections) ──
+        if (sections.length > 1) {
+          doc.addPage();
+          this.drawTableOfContents(doc, sections, fonts);
+        }
+
+        // ── 3. EACH SECTION ──
+        sections.forEach((section, idx) => {
+          // Section divider page (only when multiple sections)
+          if (sections.length > 1) {
+            doc.addPage();
+            this.drawSectionDividerPage(doc, section, idx + 1, sections.length, fonts);
+          }
+
+          // Content (auto-paginates through pageAdded handler)
+          doc.addPage();
+          this.drawSectionPage(doc, { title: section.title, content: section.content }, fonts, idx + 2);
+        });
+
+        // ── 4. CLOSING ──
+        doc.addPage();
+        this.drawProductClosingPage(doc, mainTitle, userData, natal, numerology, fonts);
+
+        doc.end();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  static drawTableOfContents(doc, sections, fonts) {
+    fillPage(doc, C.bg);
+    starField(doc, 40, 33333);
+    cornerOrnaments(doc);
+    cornerOrnaments(doc, PAGE_H - 50);
+
+    doc.font(fonts.regular).fontSize(11).fillColor(C.gold).fillOpacity(0.55);
+    doc.text('★  ◆  ★', 0, 90, { align: 'center', width: PAGE_W, characterSpacing: 10 });
+
+    doc.font(fonts.regular).fontSize(28).fillColor(C.gold).fillOpacity(1);
+    doc.text('СЪДЪРЖАНИЕ', 0, 130, { align: 'center', width: PAGE_W, characterSpacing: 3 });
+
+    ornamentDivider(doc, 180, C.gold, 0.4);
+
+    let y = 220;
+    sections.forEach((section, idx) => {
+      const num = String(idx + 1).padStart(2, '0');
+
+      // Number
+      doc.font(fonts.italic).fontSize(18).fillColor(C.goldDim).fillOpacity(0.65);
+      doc.text(num, MARGIN + 12, y, { width: 50, align: 'left' });
+
+      // Title
+      doc.font(fonts.regular).fontSize(14).fillColor(C.text).fillOpacity(1);
+      doc.text(section.title, MARGIN + 70, y + 2, { width: CONTENT_W - 70, align: 'left' });
+
+      // Dotted line + page indicator
+      doc.font(fonts.regular).fontSize(9).fillColor(C.textFaint).fillOpacity(0.5);
+      const subtitle = section.subtitle || (section.catalogItem?.subtitle) || '';
+      if (subtitle) {
+        doc.text(subtitle, MARGIN + 70, y + 24, { width: CONTENT_W - 70, align: 'left' });
+      }
+
+      y += 56;
+
+      // Thin divider between items
+      if (idx < sections.length - 1) {
+        doc.moveTo(MARGIN + 12, y - 14).lineTo(PAGE_W - MARGIN - 12, y - 14)
+           .lineWidth(0.3).strokeOpacity(0.12).stroke(C.gold);
+      }
+
+      // Soft page break if running low
+      if (y > PAGE_H - 120 && idx < sections.length - 1) {
+        doc.addPage();
+        starField(doc, 40, 33333 + idx);
+        cornerOrnaments(doc);
+        cornerOrnaments(doc, PAGE_H - 50);
+        y = 90;
+      }
+    });
+
+    doc.font(fonts.regular).fontSize(8).fillColor(C.textFaint).fillOpacity(0.45);
+    doc.text('АСТРО ОС  ·  ПЕРСОНАЛЕН АНАЛИЗ', 0, PAGE_H - 46, {
+      align: 'center', width: PAGE_W, characterSpacing: 3,
+    });
+  }
+
+  static drawSectionDividerPage(doc, section, index, total, fonts) {
+    fillPage(doc, C.bg);
+    starField(doc, 60, index * 7777);
+
+    // Soft nebula
+    doc.circle(PAGE_W / 2, PAGE_H / 2, 280).fillOpacity(0.10).fill(C.bgPurple);
+    doc.fillOpacity(1).fillColor(C.textDim);
+
+    // Decorative wheel
+    mysticCircle(doc, PAGE_W / 2, PAGE_H / 2, [
+      { r: 180, op: 0.10, lw: 0.4 },
+      { r: 120, op: 0.14, lw: 0.4 },
+      { r:  72, op: 0.20, lw: 0.5 },
+    ]);
+
+    cornerOrnaments(doc, 40);
+    cornerOrnaments(doc, PAGE_H - 40 - 16);
+
+    // Outer frame
+    doc.rect(28, 28, PAGE_W - 56, PAGE_H - 56)
+       .lineWidth(0.4).strokeOpacity(0.12).stroke(C.gold);
+
+    // "Section N of M"
+    doc.font(fonts.regular).fontSize(10).fillColor(C.goldDim).fillOpacity(0.7);
+    doc.text(`РАЗДЕЛ  ${index}  /  ${total}`, 0, PAGE_H / 2 - 80, {
+      align: 'center', width: PAGE_W, characterSpacing: 6,
+    });
+
+    ornamentDivider(doc, PAGE_H / 2 - 50, C.gold, 0.4);
+
+    // Section title (the headliner)
+    doc.font(fonts.regular).fontSize(30).fillColor(C.gold).fillOpacity(1);
+    doc.text(section.title, MARGIN, PAGE_H / 2 - 22, {
+      width: CONTENT_W, align: 'center', characterSpacing: 2,
+    });
+
+    // Subtitle if available
+    const sub = section.subtitle || section.catalogItem?.subtitle;
+    if (sub) {
+      doc.font(fonts.italic).fontSize(12).fillColor(C.textMuted).fillOpacity(0.75);
+      doc.text(sub, MARGIN, PAGE_H / 2 + 24, { width: CONTENT_W, align: 'center' });
+    }
+
+    // Bottom mark
+    doc.font(fonts.regular).fontSize(11).fillColor(C.gold).fillOpacity(0.4);
+    doc.text('★  ☽  ★', 0, PAGE_H - 78, {
+      align: 'center', width: PAGE_W, characterSpacing: 8,
+    });
+  }
+
+  static drawMergedCoverPage(doc, mainTitle, sections, userData, natal, fonts) {
+    const signSymbols = {
+      'Овен': '♈', 'Телец': '♉', 'Близнаци': '♊', 'Рак': '♋', 'Лъв': '♌', 'Дева': '♍',
+      'Везни': '♎', 'Скорпион': '♏', 'Стрелец': '♐', 'Козирог': '♑', 'Водолей': '♒', 'Риби': '♓',
+    };
+    const sunSign  = natal?.sun?.sign?.name;
+    const moonSign = natal?.moon?.sign?.name;
+    const sunSym   = signSymbols[sunSign]  || '☀';
+    const moonSym  = signSymbols[moonSign] || '☽';
+
+    fillPage(doc, C.bg);
+    starField(doc, 120, 13579);
+
+    // Nebula glow
+    doc.circle(PAGE_W / 2, PAGE_H * 0.34, 320).fillOpacity(0.13).fill(C.bgPurple);
+    doc.circle(PAGE_W * 0.18, PAGE_H * 0.72, 200).fillOpacity(0.08).fill(C.bgPurple);
+    doc.fillOpacity(1).fillColor(C.textDim);
+
+    astrologyWheel(doc, PAGE_W / 2, PAGE_H * 0.34, 200, 130);
+
+    cornerOrnaments(doc, 36);
+    cornerOrnaments(doc, 52);
+    cornerOrnaments(doc, PAGE_H - 36 - 16);
+    cornerOrnaments(doc, PAGE_H - 52 - 16);
+
+    doc.rect(24, 24, PAGE_W - 48, PAGE_H - 48)
+       .lineWidth(0.4).strokeOpacity(0.14).stroke(C.gold);
+    doc.rect(34, 34, PAGE_W - 68, PAGE_H - 68)
+       .lineWidth(0.3).strokeOpacity(0.07).stroke(C.gold);
+
+    // Top
+    doc.font(fonts.regular).fontSize(13).fillColor(C.gold).fillOpacity(0.55);
+    doc.text('★  ◆  ☽  ◆  ★', 0, 80, { align: 'center', width: PAGE_W, characterSpacing: 4 });
+
+    doc.font(fonts.regular).fontSize(9).fillColor(C.goldDim).fillOpacity(0.7);
+    doc.text('АСТРО ОС', 0, 112, { align: 'center', width: PAGE_W, characterSpacing: 6 });
+
+    // Main title
+    doc.font(fonts.regular).fontSize(36).fillColor(C.gold).fillOpacity(1);
+    doc.text(mainTitle, 0, 144, { align: 'center', width: PAGE_W, characterSpacing: 3 });
+
+    // Subtitle = service count
+    if (sections.length > 1) {
+      doc.font(fonts.italic).fontSize(11).fillColor(C.goldDim).fillOpacity(0.8);
+      doc.text(`${sections.length} персонални анализа в един документ`, 0, 200, {
+        align: 'center', width: PAGE_W,
+      });
+    }
+
+    ornamentDivider(doc, 232, C.gold, 0.45);
+
+    // Customer name (centerpiece)
+    doc.font(fonts.italic).fontSize(32).fillColor(C.text).fillOpacity(1);
+    doc.text(userData?.name || '', 0, 252, { align: 'center', width: PAGE_W });
+
+    // Birth line
+    const birthLine = [userData?.birthDate, userData?.birthPlace].filter(Boolean).join('  ·  ');
+    if (birthLine) {
+      doc.font(fonts.regular).fontSize(10).fillColor(C.goldDim).fillOpacity(0.85);
+      doc.text(birthLine, 0, 302, { align: 'center', width: PAGE_W, characterSpacing: 1.5 });
+    }
+
+    // Zodiac glyphs
+    if (sunSign || moonSign) {
+      doc.font(fonts.regular).fontSize(38).fillColor(C.gold).fillOpacity(0.82);
+      doc.text(`${sunSym}  ${moonSym}`, 0, 338, { align: 'center', width: PAGE_W });
+    }
+
+    ornamentDivider(doc, 408, C.gold, 0.3);
+
+    // Sections list (compact, on cover)
+    if (sections.length > 1) {
+      doc.font(fonts.regular).fontSize(9).fillColor(C.goldDim).fillOpacity(0.6);
+      doc.text('В ТОЗИ ДОКУМЕНТ', 0, 426, {
+        align: 'center', width: PAGE_W, characterSpacing: 4,
+      });
+
+      let listY = 446;
+      sections.slice(0, 8).forEach((s) => {
+        doc.font(fonts.regular).fontSize(10).fillColor(C.text).fillOpacity(0.85);
+        doc.text(`★  ${s.title}`, 0, listY, {
+          align: 'center', width: PAGE_W, characterSpacing: 0.5,
+        });
+        listY += 18;
+      });
+      if (sections.length > 8) {
+        doc.font(fonts.italic).fontSize(9).fillColor(C.textFaint).fillOpacity(0.55);
+        doc.text(`… и още ${sections.length - 8}`, 0, listY, { align: 'center', width: PAGE_W });
+      }
+    } else {
+      // Single section — show sun/moon labels like product cover
+      doc.font(fonts.italic).fontSize(12).fillColor(C.textMuted).fillOpacity(0.75);
+      if (sunSign)  doc.text(`${sunSym}  ${sunSign}  ·  Слънчев Знак`,  0, 426, { align: 'center', width: PAGE_W });
+      if (moonSign) doc.text(`${moonSym}  ${moonSign}  ·  Лунен Знак`, 0, 450, { align: 'center', width: PAGE_W });
+    }
+
+    doc.font(fonts.regular).fontSize(11).fillColor(C.gold).fillOpacity(0.4);
+    doc.text('★  ☽  ★', 0, PAGE_H - 78, { align: 'center', width: PAGE_W, characterSpacing: 6 });
+
+    doc.font(fonts.regular).fontSize(7.5).fillColor(C.textFaint).fillOpacity(0.45);
+    doc.text('ЛИЧЕН  ·  ПОВЕРИТЕЛЕН  ·  ДУХОВЕН', 0, PAGE_H - 48, {
+      align: 'center', width: PAGE_W, characterSpacing: 3,
+    });
+  }
+
   // ===== DOCX =====
 
   static async generateDocx(report, sections) {
