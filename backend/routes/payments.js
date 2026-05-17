@@ -131,10 +131,23 @@ router.post('/create-upsell-session', async (req, res) => {
     }
 
     const original = await getStripe().checkout.sessions.retrieve(originalSessionId);
-    const { email, customerData } = original.metadata || {};
-    if (!email || !customerData) {
+    const { email, customerData: originalCustomerDataStr } = original.metadata || {};
+    if (!email || !originalCustomerDataStr) {
       return res.status(400).json({ success: false, error: 'Не може да се намери оригиналната поръчка.' });
     }
+
+    // Merge extraCustomerData (e.g. { u3Bumps: ['B1','B4','B5'] }) into the original
+    let mergedCustomerData = originalCustomerDataStr;
+    if (req.body.extraCustomerData && typeof req.body.extraCustomerData === 'object') {
+      try {
+        const parsed = JSON.parse(originalCustomerDataStr);
+        const merged = { ...parsed, ...req.body.extraCustomerData };
+        mergedCustomerData = JSON.stringify(merged);
+      } catch (e) {
+        console.warn('[Payments] upsell: failed to merge extraCustomerData:', e.message);
+      }
+    }
+    const customerData = mergedCustomerData;
 
     // Normalize itemIds (new format) or fallback to legacy productType
     let itemIds = ids(req.body.itemIds);
